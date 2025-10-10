@@ -151,7 +151,7 @@ resource "azurerm_linux_web_app" "main" {
     always_on = true
 
     application_stack {
-      dotnet_version = "9.0"
+      dotnet_version = "8.0"
     }
 
     cors {
@@ -190,6 +190,7 @@ resource "azurerm_application_insights" "main" {
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   application_type    = "web"
+  workspace_id        = "/subscriptions/2fb2baa4-e931-4c9d-b63a-4f4c56f37358/resourceGroups/ai_learningresources-roel-appinsights_11b950cc-4419-4c56-94dd-8f21aaada60d_managed/providers/Microsoft.OperationalInsights/workspaces/managed-learningresources-roel-appinsights-ws"
 
   tags = {
     Environment = var.environment
