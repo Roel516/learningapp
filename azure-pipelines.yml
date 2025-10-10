@@ -12,7 +12,7 @@ pool:
 
 variables:
   buildConfiguration: 'Release'
-  dotnetVersion: '8.0.x'
+  dotnetVersion: '9.0.x'
 
 stages:
 - stage: Build
@@ -92,7 +92,7 @@ stages:
               appType: 'webAppLinux'
               appName: '$(webAppName)'
               package: '$(System.ArtifactsDirectory)/drop/*.zip'
-              runtimeStack: 'DOTNETCORE|8.0'
+              runtimeStack: 'DOTNETCORE|9.0'
               startUpCommand: ''
 
           - task: AzureAppServiceSettings@1
