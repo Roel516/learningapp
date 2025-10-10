@@ -50,3 +50,8 @@ Desktop.ini
 *.tmp
 *~
 nul
+
+# Azure deployment artifacts
+deployments/
+LogFiles/
+*.zip
