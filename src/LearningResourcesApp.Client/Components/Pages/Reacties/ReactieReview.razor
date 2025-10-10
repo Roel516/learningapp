@@ -1,0 +1,152 @@
+@page "/reactie-review"
+@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Client.Services
+@inject AutenticatieService AutenticatieService
+@inject HttpClient Http
+@inject NavigationManager Navigatie
+@implements IDisposable
+
+<PageTitle>Reactie Review</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="mb-4">Reacties te Beoordelen</h3>
+
+    @if (!AutenticatieService.IsIngelogd)
+    {
+        <div class="alert alert-warning">
+            Je moet ingelogd zijn om reacties te beoordelen.
+            <a href="/inloggen">Log hier in</a>
+        </div>
+    }
+    else if (AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker != true)
+    {
+        <div class="alert alert-danger">
+            Je hebt geen toegang tot deze pagina. Alleen interne medewerkers kunnen reacties beoordelen.
+        </div>
+    }
+    else
+    {
+        @if (isBezig)
+        {
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Laden...</span>
+                </div>
+            </div>
+        }
+        else if (pendingReacties == null || !pendingReacties.Any())
+        {
+            <div class="alert alert-info">
+                Er zijn momenteel geen reacties die beoordeeld moeten worden.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <strong>@pendingReacties.Count</strong> reactie(s) wachten op goedkeuring
+            </div>
+
+            @foreach (var reactie in pendingReacties)
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>@reactie.Gebruikersnaam</strong>
+                        <small class="text-muted">- @reactie.AangemaaktOp.ToString("dd MMM yyyy HH:mm")</small>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">@reactie.Tekst</p>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success btn-sm" @onclick="() => KeurGoed(reactie.Id)">
+                                <i class="bi bi-check-circle"></i> Goedkeuren
+                            </button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => Verwijder(reactie.Id)">
+                                <i class="bi bi-x-circle"></i> Afwijzen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    private List<Reactie> pendingReacties = new();
+    private bool isBezig = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AutenticatieService.AutenticatieGewijzigd += OnAutenticatieGewijzigd;
+        await LaadPendingReacties();
+    }
+
+    private void OnAutenticatieGewijzigd()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+    }
+
+    private async Task LaadPendingReacties()
+    {
+        if (AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker != true)
+        {
+            return;
+        }
+
+        try
+        {
+            isBezig = true;
+            var response = await Http.GetAsync("api/leermiddelen/reacties/pending");
+            if (response.IsSuccessStatusCode)
+            {
+                pendingReacties = await response.Content.ReadFromJsonAsync<List<Reactie>>() ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij laden pending reacties: {ex.Message}");
+        }
+        finally
+        {
+            isBezig = false;
+        }
+    }
+
+    private async Task KeurGoed(Guid reactieId)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/leermiddelen/reacties/{reactieId}/approve", null);
+            if (response.IsSuccessStatusCode)
+            {
+                pendingReacties.RemoveAll(r => r.Id == reactieId);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij goedkeuren reactie: {ex.Message}");
+        }
+    }
+
+    private async Task Verwijder(Guid reactieId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/leermiddelen/reacties/{reactieId}");
+            if (response.IsSuccessStatusCode)
+            {
+                pendingReacties.RemoveAll(r => r.Id == reactieId);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij verwijderen reactie: {ex.Message}");
+        }
+    }
+}

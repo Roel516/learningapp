@@ -1,0 +1,147 @@
+@page "/registreren"
+@using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Models.Authenticatie
+@inject AutenticatieService AutenticatieService
+@inject NavigationManager Navigatie
+
+<PageTitle>Registreren</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body p-5">
+                    <h3 class="mb-4 text-center">Account Aanmaken</h3>
+
+                    @if (!string.IsNullOrEmpty(foutmelding))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @foutmelding
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(succesmelding))
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @succesmelding
+                        </div>
+                    }
+
+                    <EditForm Model="@registerRequest" OnValidSubmit="@HandleRegistreren">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label for="naam" class="form-label">Naam</label>
+                            <InputText id="naam" class="form-control" @bind-Value="registerRequest.Naam" placeholder="Voer je naam in" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" type="email" class="form-control" @bind-Value="registerRequest.Email" placeholder="voorbeeld@email.com" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="wachtwoord" class="form-label">Wachtwoord</label>
+                            <InputText id="wachtwoord" type="password" class="form-control" @bind-Value="registerRequest.Wachtwoord" placeholder="Minimaal 6 tekens" />
+                            <small class="text-muted">
+                                Wachtwoord moet minimaal 6 tekens lang zijn
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="wachtwoordBevestiging" class="form-label">Bevestig Wachtwoord</label>
+                            <InputText id="wachtwoordBevestiging" type="password" class="form-control" @bind-Value="wachtwoordBevestiging" placeholder="Herhaal je wachtwoord" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isBezig">
+                            @if (isBezig)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Registreren...</span>
+                            }
+                            else
+                            {
+                                <span>Registreren</span>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <div class="text-center mt-4">
+                        <p class="text-muted">
+                            Heb je al een account? <a href="/inloggen" class="text-decoration-none">Log hier in</a>
+                        </p>
+                    </div>                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerRequest = new();
+    private string wachtwoordBevestiging = string.Empty;
+    private string foutmelding = string.Empty;
+    private string succesmelding = string.Empty;
+    private bool isBezig = false;
+
+    private async Task HandleRegistreren()
+    {
+        try
+        {
+            foutmelding = string.Empty;
+            succesmelding = string.Empty;
+
+            // Valideer wachtwoord bevestiging
+            if (registerRequest.Wachtwoord != wachtwoordBevestiging)
+            {
+                foutmelding = "De wachtwoorden komen niet overeen";
+                return;
+            }
+
+            // Valideer wachtwoord lengte
+            if (string.IsNullOrEmpty(registerRequest.Wachtwoord) || registerRequest.Wachtwoord.Length < 6)
+            {
+                foutmelding = "Wachtwoord moet minimaal 6 tekens lang zijn";
+                return;
+            }
+
+            // Valideer naam
+            if (string.IsNullOrWhiteSpace(registerRequest.Naam))
+            {
+                foutmelding = "Naam is verplicht";
+                return;
+            }
+
+            // Valideer email
+            if (string.IsNullOrWhiteSpace(registerRequest.Email))
+            {
+                foutmelding = "Email is verplicht";
+                return;
+            }
+
+            isBezig = true;
+
+            var (succes, error) = await AutenticatieService.Registreren(registerRequest);
+
+            if (succes)
+            {
+                succesmelding = "Account succesvol aangemaakt! Je wordt doorgestuurd...";
+                await Task.Delay(1500); // Korte delay zodat gebruiker de melding ziet
+                Navigatie.NavigateTo("/");
+            }
+            else
+            {
+                foutmelding = error ?? "Registratie mislukt";
+            }
+        }
+        catch (Exception ex)
+        {
+            foutmelding = $"Er is een fout opgetreden: {ex.Message}";
+        }
+        finally
+        {
+            isBezig = false;
+        }
+    }
+}

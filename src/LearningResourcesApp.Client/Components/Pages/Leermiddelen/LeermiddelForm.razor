@@ -1,0 +1,50 @@
+@using LearningResourcesApp.Client.Models.Leermiddelen
+
+<EditForm Model="@Leermiddel" OnValidSubmit="@OnSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="titel" class="form-label">Titel</label>
+        <InputText id="titel" class="form-control" @bind-Value="Leermiddel.Titel" />
+    </div>
+
+    <div class="mb-3">
+        <label for="beschrijving" class="form-label">Beschrijving</label>
+        <InputTextArea id="beschrijving" class="form-control" rows="4" @bind-Value="Leermiddel.Beschrijving" />
+    </div>
+
+    <div class="mb-3">
+        <label for="link" class="form-label">Link (URL)</label>
+        <InputText id="link" class="form-control" @bind-Value="Leermiddel.Link" placeholder="https://voorbeeld.nl" />
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">@SubmitButtonText</button>
+        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Annuleren</button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public Leermiddel Leermiddel { get; set; } = new();
+
+    [Parameter]
+    public string SubmitButtonText { get; set; } = "Opslaan";
+
+    [Parameter]
+    public EventCallback<Leermiddel> OnValidSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelled { get; set; }
+
+    private async Task OnSubmit()
+    {
+        await OnValidSubmit.InvokeAsync(Leermiddel);
+    }
+
+    private async Task OnCancel()
+    {
+        await OnCancelled.InvokeAsync();
+    }
+}

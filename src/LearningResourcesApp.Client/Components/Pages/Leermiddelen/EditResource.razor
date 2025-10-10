@@ -1,0 +1,59 @@
+@page "/edit-resource/{id:guid}"
+@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Client.Services
+@inject LeermiddelService LeermiddelService
+@inject NavigationManager Navigatie
+
+<PageTitle>Leermiddel Bewerken</PageTitle>
+
+<div class="container mt-4">
+    @if (leermiddel == null)
+    {
+        <div class="alert alert-warning">
+            Leermiddel aan het laden...
+        </div>
+    }
+    else
+    {
+        <h3>Leermiddel Bewerken</h3>
+
+        <LeermiddelForm Leermiddel="@leermiddel"
+                        SubmitButtonText="Wijzigingen Opslaan"
+                        OnValidSubmit="@VerwerkWijziging"
+                        OnCancelled="@Annuleren" />
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Leermiddel? leermiddel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        leermiddel = await LeermiddelService.HaalLeermiddelOpMetId(Id);
+
+        if (leermiddel == null)
+        {
+            Navigatie.NavigateTo("/");
+        }
+    }
+
+    private async Task VerwerkWijziging(Leermiddel gewijzigdLeermiddel)
+    {
+        if (!string.IsNullOrWhiteSpace(gewijzigdLeermiddel.Titel))
+        {
+            var succes = await LeermiddelService.WijzigLeermiddel(gewijzigdLeermiddel);
+            if (succes)
+            {
+                Navigatie.NavigateTo($"/resource/{Id}");
+            }
+        }
+    }
+
+    private void Annuleren()
+    {
+        Navigatie.NavigateTo($"/resource/{Id}");
+    }
+}

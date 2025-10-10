@@ -1,0 +1,103 @@
+@page "/authentication/login-callback"
+@using LearningResourcesApp.Client.Services
+@inject AutenticatieService AutenticatieService
+@inject NavigationManager Navigatie
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Inloggen...</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Verwerken...</span>
+            </div>
+            <p class="mt-3">@statusBericht</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string statusBericht = "Authenticatie verwerken...";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Haal de hash fragment op uit de URL
+                var fragment = await JSRuntime.InvokeAsync<string>("eval", "window.location.hash");
+
+                if (!string.IsNullOrEmpty(fragment))
+                {
+                    // Parse de parameters uit het fragment
+                    var parameters = ParseFragment(fragment);
+
+                    if (parameters.ContainsKey("id_token"))
+                    {
+                        var idToken = parameters["id_token"];
+                        var accessToken = parameters.ContainsKey("access_token") ? parameters["access_token"] : "";
+
+                        statusBericht = "Gebruikersgegevens ophalen...";
+                        StateHasChanged();
+
+                        await AutenticatieService.VerwerkOAuthCallback(idToken, accessToken);
+
+                        statusBericht = "Succesvol ingelogd! Doorverwijzen...";
+                        StateHasChanged();
+
+                        await Task.Delay(1000);
+                        Navigatie.NavigateTo("/", true);
+                    }
+                    else if (parameters.ContainsKey("error"))
+                    {
+                        var error = parameters["error"];
+                        statusBericht = $"Fout bij inloggen: {error}";
+                        StateHasChanged();
+
+                        await Task.Delay(3000);
+                        Navigatie.NavigateTo("/inloggen");
+                    }
+                }
+                else
+                {
+                    statusBericht = "Geen authenticatiegegevens gevonden.";
+                    StateHasChanged();
+
+                    await Task.Delay(2000);
+                    Navigatie.NavigateTo("/inloggen");
+                }
+            }
+            catch (Exception ex)
+            {
+                statusBericht = $"Er is een fout opgetreden: {ex.Message}";
+                StateHasChanged();
+
+                await Task.Delay(3000);
+                Navigatie.NavigateTo("/inloggen");
+            }
+        }
+    }
+
+    private Dictionary<string, string> ParseFragment(string fragment)
+    {
+        var result = new Dictionary<string, string>();
+
+        // Verwijder de # aan het begin
+        if (fragment.StartsWith("#"))
+            fragment = fragment.Substring(1);
+
+        var pairs = fragment.Split('&');
+        foreach (var pair in pairs)
+        {
+            var keyValue = pair.Split('=');
+            if (keyValue.Length == 2)
+            {
+                result[keyValue[0]] = Uri.UnescapeDataString(keyValue[1]);
+            }
+        }
+
+        return result;
+    }
+}

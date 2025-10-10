@@ -1,0 +1,141 @@
+# Azure DevOps Pipeline for Learning Resources App
+# Builds, tests, and deploys Blazor WASM + ASP.NET Core API to Azure
+
+trigger:
+  branches:
+    include:
+    - main
+    - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '9.0.x'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build Solution'
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Setup .NET SDK'
+      inputs:
+        version: $(dotnetVersion)
+        includePreviewVersions: false
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore NuGet packages'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build solution'
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-restore'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Run tests'
+      inputs:
+        command: 'test'
+        projects: 'tests/**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build --verbosity normal'
+        publishTestResults: true
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish API project'
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: 'src/LearningResourcesApp/LearningResourcesApp.csproj'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/app --no-build'
+        zipAfterPublish: true
+        modifyOutputPath: false
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish build artifacts'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/app'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: DeployWeb
+    displayName: 'Deploy to App Service'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@1
+            displayName: 'Download artifacts'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'drop'
+              downloadPath: '$(System.ArtifactsDirectory)'
+
+          - task: AzureWebApp@1
+            displayName: 'Deploy to Azure App Service'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webAppLinux'
+              appName: '$(webAppName)'
+              package: '$(System.ArtifactsDirectory)/drop/*.zip'
+              runtimeStack: 'DOTNETCORE|9.0'
+              startUpCommand: ''
+
+          - task: AzureAppServiceSettings@1
+            displayName: 'Configure App Settings'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appName: '$(webAppName)'
+              resourceGroupName: '$(resourceGroupName)'
+              appSettings: |
+                [
+                  {
+                    "name": "ASPNETCORE_ENVIRONMENT",
+                    "value": "Production",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "Authentication__Google__ClientId",
+                    "value": "$(googleClientId)",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "Authentication__Google__ClientSecret",
+                    "value": "$(googleClientSecret)",
+                    "slotSetting": false
+                  }
+                ]
+              connectionStrings: |
+                [
+                  {
+                    "name": "DefaultConnection",
+                    "value": "$(sqlConnectionString)",
+                    "type": "SQLAzure",
+                    "slotSetting": false
+                  }
+                ]
+
+          - task: AzureCLI@2
+            displayName: 'Run database migrations'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                echo "Database migrations are automatically applied on application startup"
+                echo "Checking app service status..."
+                az webapp show --name $(webAppName) --resource-group $(resourceGroupName) --query state -o tsv

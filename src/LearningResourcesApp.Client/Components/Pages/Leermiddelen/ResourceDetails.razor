@@ -1,0 +1,165 @@
+@page "/resource/{id:guid}"
+@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Client.Services
+@inject LeermiddelService LeermiddelService
+@inject AutenticatieService AutenticatieService
+@inject NavigationManager Navigatie
+@implements IDisposable
+
+<PageTitle>Leermiddel Details</PageTitle>
+
+<div class="container mt-4">
+    @if (leermiddel == null)
+    {
+        <div class="alert alert-warning">
+            Leermiddel niet gevonden.
+        </div>
+        <button class="btn btn-secondary" @onclick="NavigeerTerug">Terug naar Lijst</button>
+    }
+    else
+    {
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">@leermiddel.Titel</h4>
+                <div>
+                    @if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker == true)
+                    {
+                        <button class="btn btn-sm btn-primary me-2" @onclick="BewerkLeermiddel">Bewerken</button>
+                    }
+                    <button class="btn btn-sm btn-secondary" @onclick="NavigeerTerug">Terug naar Lijst</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text">@leermiddel.Beschrijving</p>
+                @if (!string.IsNullOrWhiteSpace(leermiddel.Link))
+                {
+                    <p>
+                        <strong>Link:</strong>
+                        <a href="@leermiddel.Link" target="_blank">@leermiddel.Link</a>
+                    </p>
+                }
+                <p class="text-muted">
+                    <small>Aangemaakt: @leermiddel.AangemaaktOp.ToString("yyyy-MM-dd HH:mm")</small>
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Reacties (@leermiddel.Reacties.Count)</h5>
+            </div>
+            <div class="card-body">
+                @if (!leermiddel.Reacties.Any())
+                {
+                    <p class="text-muted">Nog geen reacties. Wees de eerste om te reageren!</p>
+                }
+                else
+                {
+                    <div class="comments-list mb-4">
+                        @foreach (var reactie in leermiddel.Reacties.OrderByDescending(r => r.AangemaaktOp))
+                        {
+                            <div class="card mb-2 @(!reactie.IsGoedgekeurd ? "border-warning" : "")">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">
+                                        @reactie.Gebruikersnaam
+                                        <small class="ms-2">@reactie.AangemaaktOp.ToString("yyyy-MM-dd HH:mm")</small>
+                                        @if (!reactie.IsGoedgekeurd)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-2">
+                                                <i class="bi bi-clock"></i> Wordt beoordeeld
+                                            </span>
+                                        }
+                                    </h6>
+                                    <p class="card-text mb-0">@reactie.Tekst</p>
+                                    @if (!reactie.IsGoedgekeurd)
+                                    {
+                                        <small class="text-muted d-block mt-2">
+                                            <i class="bi bi-info-circle"></i> Deze reactie is alleen voor jou zichtbaar totdat deze is goedgekeurd door een medewerker.
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <hr />
+                <h6>Reactie Toevoegen</h6>
+                @if (AutenticatieService.IsIngelogd)
+                {
+                    <EditForm Model="@nieuweReactie" OnValidSubmit="@VoegReactieToe">
+                        <div class="mb-3">
+                            <label class="form-label">Jouw Naam</label>
+                            <input type="text" class="form-control" value="@AutenticatieService.HuidigeGebruiker!.Naam" disabled />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reactieTekst" class="form-label">Reactie</label>
+                            <InputTextArea id="reactieTekst" class="form-control" rows="3" @bind-Value="nieuweReactie.Tekst" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Reactie Plaatsen</button>
+                    </EditForm>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        Je moet <a href="/inloggen">inloggen</a> om een reactie te plaatsen.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Leermiddel? leermiddel;
+    private Reactie nieuweReactie = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LaadLeermiddel();
+        AutenticatieService.AutenticatieGewijzigd += OnAutenticatieGewijzigd;
+    }
+
+    private void OnAutenticatieGewijzigd()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+    }
+
+    private async Task LaadLeermiddel()
+    {
+        leermiddel = await LeermiddelService.HaalLeermiddelOpMetId(Id);
+    }
+
+    private async Task VoegReactieToe()
+    {
+        if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker != null && !string.IsNullOrWhiteSpace(nieuweReactie.Tekst))
+        {
+            nieuweReactie.GebruikerId = AutenticatieService.HuidigeGebruiker.Id;
+            nieuweReactie.Gebruikersnaam = AutenticatieService.HuidigeGebruiker.Naam;
+
+            await LeermiddelService.VoegReactieToe(Id, nieuweReactie);
+            nieuweReactie = new Reactie();
+            await LaadLeermiddel();
+        }
+    }
+
+    private void BewerkLeermiddel()
+    {
+        Navigatie.NavigateTo($"/edit-resource/{Id}");
+    }
+
+    private void NavigeerTerug()
+    {
+        Navigatie.NavigateTo("/resources");
+    }
+}

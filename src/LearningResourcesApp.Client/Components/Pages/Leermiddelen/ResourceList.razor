@@ -1,0 +1,116 @@
+@page "/"
+@page "/resources"
+@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Client.Services
+@inject LeermiddelService LeermiddelService
+@inject AutenticatieService AutenticatieService
+@inject NavigationManager Navigatie
+@implements IDisposable
+
+<PageTitle>Leermiddelen</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Leermiddelen</h3>
+        @if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker == true)
+        {
+            <button class="btn btn-primary" @onclick="NavigeerNaarLeermiddelToevoegen">
+                Nieuw Leermiddel Toevoegen
+            </button>
+        }
+    </div>
+
+    @if (!leermiddelen.Any())
+    {
+        <div class="alert alert-info">
+            Nog geen leermiddelen. Klik op "Nieuw Leermiddel Toevoegen" om te beginnen!
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var leermiddel in leermiddelen)
+            {
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@leermiddel.Titel</h5>
+                            <p class="card-text">@leermiddel.Beschrijving</p>
+                            @if (!string.IsNullOrWhiteSpace(leermiddel.Link))
+                            {
+                                <a href="@leermiddel.Link" target="_blank" class="card-link">
+                                    Bezoek Link
+                                </a>
+                            }
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    @leermiddel.Reacties.Count reactie(s)
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => BekijkLeermiddel(leermiddel.Id)">
+                                Bekijk Details
+                            </button>
+                            @if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker == true)
+                            {
+                                <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="() => BewerkLeermiddel(leermiddel.Id)">
+                                    Bewerken
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger ms-2" @onclick="() => VerwijderLeermiddel(leermiddel.Id)">
+                                    Verwijderen
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Leermiddel> leermiddelen = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LaadLeermiddelen();
+        AutenticatieService.AutenticatieGewijzigd += OnAutenticatieGewijzigd;
+    }
+
+    private void OnAutenticatieGewijzigd()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+    }
+
+    private async Task LaadLeermiddelen()
+    {
+        leermiddelen = await LeermiddelService.HaalAlleLeermiddelenOp();
+    }
+
+    private void NavigeerNaarLeermiddelToevoegen()
+    {
+        Navigatie.NavigateTo("/add-resource");
+    }
+
+    private void BekijkLeermiddel(Guid id)
+    {
+        Navigatie.NavigateTo($"/resource/{id}");
+    }
+
+    private void BewerkLeermiddel(Guid id)
+    {
+        Navigatie.NavigateTo($"/edit-resource/{id}");
+    }
+
+    private async Task VerwijderLeermiddel(Guid id)
+    {
+        await LeermiddelService.VerwijderLeermiddel(id);
+        await LaadLeermiddelen();
+    }
+}

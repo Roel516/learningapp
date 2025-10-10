@@ -1,0 +1,38 @@
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is gitignored for security
+
+# Project Configuration
+project_name = "learningresources"
+environment  = "prod"
+location     = "West Europe"
+
+# App Service Configuration
+app_service_sku = "B1"  # B1 (Basic), S1 (Standard), P1v2 (Premium)
+
+# SQL Configuration
+sql_admin_username = "sqladmin"
+sql_admin_password = "YourSecurePassword123!"  # Change this!
+sql_sku           = "Basic"  # Basic, S0, S1, S2, etc.
+
+# Your development IP (optional, for SQL access)
+# Find your IP at https://www.whatismyip.com/
+dev_ip_address = ""  # e.g., "203.0.113.42"
+
+# GitHub Configuration
+github_token     = "ghp_YourGitHubPersonalAccessToken"  # Get from https://github.com/settings/tokens
+github_owner     = "your-github-username"
+github_repo_name = "your-repo-name"
+
+# Google OAuth (optional)
+google_client_id     = "your-google-client-id.apps.googleusercontent.com"
+google_client_secret = "your-google-client-secret"
+
+# Optional Features
+enable_staging_slot = false
+enable_app_insights = true
+
+# Azure DevOps Configuration (only required if using Azure DevOps Pipelines)
+# Leave empty if using GitHub Actions
+# Note: Azure subscription, tenant, and service principal are automatically retrieved/created
+azdo_org_url = ""  # e.g., "https://dev.azure.com/yourorg"
+azdo_pat     = ""  # Get from https://dev.azure.com/yourorg/_usersSettings/tokens

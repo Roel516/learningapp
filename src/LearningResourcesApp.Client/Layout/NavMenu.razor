@@ -1,0 +1,137 @@
+@using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Models.Leermiddelen
+@inject AutenticatieService AutenticatieService
+@inject HttpClient Http
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Leermiddelen App</a>
+
+        @if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker != null)
+        {
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">@AutenticatieService.HuidigeGebruiker.Naam</span>
+                <button class="btn btn-sm btn-outline-light" @onclick="Uitloggen">Uitloggen</button>
+            </div>
+        }
+
+        <button title="Navigatiemenu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Leermiddelen
+            </NavLink>
+        </div>
+
+        @if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker == true)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="add-resource">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Leermiddel Toevoegen
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="reactie-review" style="position: relative; white-space: nowrap;">
+                    <span class="bi bi-clipboard-check" aria-hidden="true"></span> Reacties Beoordelen
+                    @if (pendingReactiesCount > 0)
+                    {
+                        <span class="badge rounded-pill bg-warning text-dark" style="font-size: 0.6rem; padding: 0.15rem 0.35rem; margin-left: 0.25rem;">@pendingReactiesCount</span>
+                    }
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="gebruikersbeheer">
+                    <span class="bi bi-people-fill" aria-hidden="true"></span> Gebruikersbeheer
+                </NavLink>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="inloggen">
+                    <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Inloggen
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="registreren">
+                    <span class="bi bi-person-plus-fill" aria-hidden="true"></span> Registreren
+                </NavLink>
+            </div>
+        }
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    private int pendingReactiesCount = 0;
+    private System.Threading.Timer? timer;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override void OnInitialized()
+    {
+        AutenticatieService.AutenticatieGewijzigd += OnAutenticatieGewijzigd;
+
+        // Start timer om elke 30 seconden het aantal pending reacties op te halen
+        timer = new System.Threading.Timer(async _ => await LaadPendingReactiesCount(), null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+    }
+
+    private async void OnAutenticatieGewijzigd()
+    {
+        await InvokeAsync(async () =>
+        {
+            await LaadPendingReactiesCount();
+            StateHasChanged();
+        });
+    }
+
+    private async Task LaadPendingReactiesCount()
+    {
+        if (AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker != true)
+        {
+            pendingReactiesCount = 0;
+            return;
+        }
+
+        try
+        {
+            var response = await Http.GetAsync("api/leermiddelen/reacties/pending");
+            if (response.IsSuccessStatusCode)
+            {
+                var reacties = await response.Content.ReadFromJsonAsync<List<Reactie>>();
+                pendingReactiesCount = reacties?.Count ?? 0;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij laden pending reacties count: {ex.Message}");
+        }
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private async Task Uitloggen()
+    {
+        await AutenticatieService.Uitloggen();
+    }
+
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+        timer?.Dispose();
+    }
+}

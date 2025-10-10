@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version)",
+      "Bash(dotnet build)",
+      "Bash(dotnet build:*)",
+      "Bash(move:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(dotnet run:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet tool install:*)",
+      "Bash(dotnet ef database:*)",
+      "Bash(if exist leermiddelen.db del //F leermiddelen.db)",
+      "Bash(if exist leermiddelen.db-shm del //F leermiddelen.db-shm)",
+      "Bash(if exist leermiddelen.db-wal del //F leermiddelen.db-wal)",
+      "Bash(dir:*)",
+      "Bash(mv:*)",
+      "Bash(rmdir:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(dotnet add reference:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet add:*)",
+      "Bash(dotnet test:*)",
+      "Bash(del testsLearningResourcesApp.Client.TestsLeermiddelFormTests.cs)",
+      "Bash(del testsLearningResourcesApp.Client.TestsNavMenuTests.cs)",
+      "Bash(dotnet sln:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

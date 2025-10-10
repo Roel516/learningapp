@@ -1,0 +1,169 @@
+@page "/inloggen"
+@using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Models.Authenticatie
+@using System.Text.Json
+@inject AutenticatieService AutenticatieService
+@inject NavigationManager Navigatie
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Inloggen</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body p-5">
+                    <h3 class="mb-4 text-center">Welkom bij Leermiddelen App</h3>
+
+                    @if (!string.IsNullOrEmpty(foutmelding))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @foutmelding
+                        </div>
+                    }
+
+                    <div class="text-center mb-4">
+                        <p class="text-muted mb-3">Log in met:</p>
+
+                        <button class="btn btn-danger w-100 mb-3" @onclick="LoginMetGoogleOAuth" disabled="@isBezig">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-google me-2" viewBox="0 0 16 16">
+                                <path d="M15.545 6.558a9.4 9.4 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.7 7.7 0 0 1 5.352 2.082l-2.284 2.284A4.35 4.35 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.8 4.8 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.7 3.7 0 0 0 1.599-2.431H8v-3.08z"/>
+                            </svg>
+                            Inloggen met Google
+                        </button>
+
+                        @if (string.IsNullOrEmpty(googleClientId))
+                        {
+                            <div class="alert alert-warning small">
+                                <strong>Let op:</strong> Google OAuth is niet geconfigureerd.
+                            </div>
+                        }
+                    </div>
+
+                    <div class="position-relative my-4">
+                        <hr />
+                        <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted">of</span>
+                    </div>
+
+                    <h5 class="mb-3">Inloggen met Email</h5>
+                    <EditForm Model="@loginRequest" OnValidSubmit="@HandleInloggen">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" type="email" class="form-control" @bind-Value="loginRequest.Email" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="wachtwoord" class="form-label">Wachtwoord</label>
+                            <InputText id="wachtwoord" type="password" class="form-control" @bind-Value="loginRequest.Wachtwoord" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isBezig">
+                            @if (isBezig)
+                            {
+                                <span>Inloggen...</span>
+                            }
+                            else
+                            {
+                                <span>Inloggen</span>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <div class="text-center mt-4">
+                        <p class="text-muted">
+                            Geen account? <a href="/registreren" class="text-decoration-none">Registreer hier om reacties te plaatsen!</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private string foutmelding = string.Empty;
+    private bool isBezig = false;
+    private string? googleClientId;
+    private string? redirectUri;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Laad configuratie
+            var config = await Http.GetFromJsonAsync<JsonElement>("appsettings.json");
+            if (config.TryGetProperty("Google", out var googleConfig))
+            {
+                googleClientId = googleConfig.GetProperty("ClientId").GetString();
+
+                // Bouw de redirect URI op basis van de huidige URL
+                var currentUri = new Uri(Navigatie.Uri);
+                var baseUrl = $"{currentUri.Scheme}://{currentUri.Host}:{currentUri.Port}";
+                redirectUri = $"{baseUrl}/authentication/login-callback";
+
+                // Controleer of het de standaard placeholder is
+                if (googleClientId?.Contains("YOUR_GOOGLE_CLIENT_ID") == true)
+                {
+                    googleClientId = null;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij laden configuratie: {ex.Message}");
+        }
+    }
+
+    private async Task HandleInloggen()
+    {
+        try
+        {
+            foutmelding = string.Empty;
+            isBezig = true;
+
+            var (succes, error) = await AutenticatieService.Inloggen(loginRequest);
+
+            if (succes)
+            {
+                Navigatie.NavigateTo("/");
+            }
+            else
+            {
+                foutmelding = error ?? "Inloggen mislukt";
+            }
+        }
+        catch (Exception ex)
+        {
+            foutmelding = $"Er is een fout opgetreden: {ex.Message}";
+        }
+        finally
+        {
+            isBezig = false;
+        }
+    }
+
+    private void LoginMetGoogleOAuth()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(googleClientId))
+            {
+                foutmelding = "Google Client ID is niet geconfigureerd.";
+                return;
+            }
+
+            // Genereer OAuth URL en navigeer
+            var authUrl = AutenticatieService.GenereerGoogleLoginUrl(googleClientId, redirectUri ?? "");
+            Navigatie.NavigateTo(authUrl, true);
+        }
+        catch (Exception ex)
+        {
+            foutmelding = $"Fout bij starten OAuth flow: {ex.Message}";
+        }
+    }
+}

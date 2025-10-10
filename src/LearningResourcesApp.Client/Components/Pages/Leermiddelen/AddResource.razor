@@ -1,0 +1,73 @@
+@page "/add-resource"
+@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Client.Services
+@inject LeermiddelService LeermiddelService
+@inject AutenticatieService AutenticatieService
+@inject NavigationManager Navigatie
+@implements IDisposable
+
+<PageTitle>Leermiddel Toevoegen</PageTitle>
+
+<div class="container mt-4">
+    <h3>Nieuw Leermiddel Toevoegen</h3>
+
+    @if (!AutenticatieService.IsIngelogd)
+    {
+        <div class="alert alert-warning">
+            Je moet ingelogd zijn om een leermiddel toe te voegen.
+            <a href="/inloggen">Log hier in</a>
+        </div>
+    }
+    else if (AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker != true)
+    {
+        <div class="alert alert-danger">
+            Je hebt geen toegang tot deze pagina. Alleen interne medewerkers kunnen leermiddelen toevoegen.
+        </div>
+    }
+    else
+    {
+        <LeermiddelForm Leermiddel="@nieuwLeermiddel"
+                        SubmitButtonText="Leermiddel Toevoegen"
+                        OnValidSubmit="@VerwerkIndiening"
+                        OnCancelled="@Annuleren" />
+    }
+</div>
+
+@code {
+    private Leermiddel nieuwLeermiddel = new();
+
+    protected override void OnInitialized()
+    {
+        AutenticatieService.AutenticatieGewijzigd += OnAutenticatieGewijzigd;
+    }
+
+    private void OnAutenticatieGewijzigd()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+    }
+
+    private async Task VerwerkIndiening(Leermiddel leermiddel)
+    {
+        // Extra beveiliging: controleer of gebruiker interne medewerker is
+        if (AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker != true)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(leermiddel.Titel))
+        {
+            await LeermiddelService.VoegLeermiddelToe(leermiddel);
+            Navigatie.NavigateTo("/");
+        }
+    }
+
+    private void Annuleren()
+    {
+        Navigatie.NavigateTo("/");
+    }
+}
