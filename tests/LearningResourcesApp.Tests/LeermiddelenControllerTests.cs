@@ -1,31 +1,29 @@
 using FluentAssertions;
 using LearningResourcesApp.Controllers;
-using LearningResourcesApp.Data;
 using LearningResourcesApp.Models;
+using LearningResourcesApp.Repositories.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 
 namespace LearningResourcesApp.Tests;
 
-public class LeermiddelenControllerTests : IDisposable
+public class LeermiddelenControllerTests
 {
-    private readonly LeermiddelContext _context;
+    private readonly Mock<ILeermiddelRepository> _mockLeermiddelRepo;
+    private readonly Mock<IReactieRepository> _mockReactieRepo;
     private readonly Mock<ILogger<LeermiddelenController>> _mockLogger;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly LeermiddelenController _controller;
 
     public LeermiddelenControllerTests()
     {
-        // Setup in-memory database
-        var options = new DbContextOptionsBuilder<LeermiddelContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        _context = new LeermiddelContext(options);
+        // Setup repository mocks
+        _mockLeermiddelRepo = new Mock<ILeermiddelRepository>();
+        _mockReactieRepo = new Mock<IReactieRepository>();
 
         // Setup logger mock
         _mockLogger = new Mock<ILogger<LeermiddelenController>>();
@@ -35,34 +33,41 @@ public class LeermiddelenControllerTests : IDisposable
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null, null, null, null, null, null, null, null);
 
-        _controller = new LeermiddelenController(_context, _mockLogger.Object, _mockUserManager.Object);
+        _controller = new LeermiddelenController(
+            _mockLeermiddelRepo.Object,
+            _mockReactieRepo.Object,
+            _mockLogger.Object,
+            _mockUserManager.Object);
     }
 
     [Fact]
     public async Task GetLeermiddelen_ReturnsAllLeermiddelen()
     {
         // Arrange
-        var leermiddel1 = new Leermiddel
+        var leermiddelen = new List<Leermiddel>
         {
-            Id = Guid.NewGuid(),
-            Titel = "Test 1",
-            Beschrijving = "Beschrijving 1",
-            Link = "https://test1.com",
-            AangemaaktOp = DateTime.UtcNow,
-            Reacties = new List<Reactie>()
-        };
-        var leermiddel2 = new Leermiddel
-        {
-            Id = Guid.NewGuid(),
-            Titel = "Test 2",
-            Beschrijving = "Beschrijving 2",
-            Link = "https://test2.com",
-            AangemaaktOp = DateTime.UtcNow,
-            Reacties = new List<Reactie>()
+            new Leermiddel
+            {
+                Id = Guid.NewGuid(),
+                Titel = "Test 1",
+                Beschrijving = "Beschrijving 1",
+                Link = "https://test1.com",
+                AangemaaktOp = DateTime.UtcNow,
+                Reacties = new List<Reactie>()
+            },
+            new Leermiddel
+            {
+                Id = Guid.NewGuid(),
+                Titel = "Test 2",
+                Beschrijving = "Beschrijving 2",
+                Link = "https://test2.com",
+                AangemaaktOp = DateTime.UtcNow,
+                Reacties = new List<Reactie>()
+            }
         };
 
-        _context.Leermiddelen.AddRange(leermiddel1, leermiddel2);
-        await _context.SaveChangesAsync();
+        _mockLeermiddelRepo.Setup(x => x.GetAllAsync())
+            .ReturnsAsync(leermiddelen);
 
         // Setup anonymous user
         _controller.ControllerContext = new ControllerContext
@@ -76,9 +81,9 @@ public class LeermiddelenControllerTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
         var okResult = result.Result as OkObjectResult;
-        var leermiddelen = okResult?.Value as List<Leermiddel>;
-        leermiddelen.Should().NotBeNull();
-        leermiddelen!.Count.Should().Be(2);
+        var returnedLeermiddelen = okResult?.Value as List<Leermiddel>;
+        returnedLeermiddelen.Should().NotBeNull();
+        returnedLeermiddelen!.Count.Should().Be(2);
     }
 
     [Fact]
@@ -95,8 +100,8 @@ public class LeermiddelenControllerTests : IDisposable
             Reacties = new List<Reactie>()
         };
 
-        _context.Leermiddelen.Add(leermiddel);
-        await _context.SaveChangesAsync();
+        _mockLeermiddelRepo.Setup(x => x.GetByIdAsync(leermiddel.Id))
+            .ReturnsAsync(leermiddel);
 
         // Setup anonymous user
         _controller.ControllerContext = new ControllerContext
@@ -122,6 +127,9 @@ public class LeermiddelenControllerTests : IDisposable
         // Arrange
         var nonExistentId = Guid.NewGuid();
 
+        _mockLeermiddelRepo.Setup(x => x.GetByIdAsync(nonExistentId))
+            .ReturnsAsync((Leermiddel?)null);
+
         // Setup anonymous user
         _controller.ControllerContext = new ControllerContext
         {
@@ -136,7 +144,7 @@ public class LeermiddelenControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateLeermiddel_WithoutInterneMedewerkerClaim_ReturnsForbid()
+    public async Task CreateLeermiddel_WithValidData_CreatesLeermiddel()
     {
         // Arrange
         var leermiddel = new Leermiddel
@@ -146,56 +154,21 @@ public class LeermiddelenControllerTests : IDisposable
             Link = "https://newtest.com"
         };
 
-        var user = new ApplicationUser { Id = "user1" };
-        var claims = new List<Claim>();
-
-        // Setup authenticated user without InterneMedewerker claim
-        var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "test") }, "TestAuth"));
-        _controller.ControllerContext = new ControllerContext
+        var createdLeermiddel = new Leermiddel
         {
-            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            Id = Guid.NewGuid(),
+            Titel = leermiddel.Titel,
+            Beschrijving = leermiddel.Beschrijving,
+            Link = leermiddel.Link,
+            AangemaaktOp = DateTime.UtcNow,
+            Reacties = new List<Reactie>()
         };
 
-        _mockUserManager.Setup(x => x.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
-            .ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetClaimsAsync(user))
-            .ReturnsAsync(claims);
+        _mockLeermiddelRepo.Setup(x => x.CreateAsync(It.IsAny<Leermiddel>()))
+            .ReturnsAsync(createdLeermiddel);
 
-        // Act
-        var result = await _controller.CreateLeermiddel(leermiddel);
-
-        // Assert
-        result.Result.Should().BeOfType<ForbidResult>();
-    }
-
-    [Fact]
-    public async Task CreateLeermiddel_WithInterneMedewerkerClaim_CreatesLeermiddel()
-    {
-        // Arrange
-        var leermiddel = new Leermiddel
-        {
-            Titel = "New Test",
-            Beschrijving = "New Beschrijving",
-            Link = "https://newtest.com"
-        };
-
-        var user = new ApplicationUser { Id = "admin1" };
-        var claims = new List<Claim>
-        {
-            new Claim(AppClaims.InterneMedewerker, "true")
-        };
-
-        // Setup authenticated admin user
-        var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "admin") }, "TestAuth"));
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
-        };
-
-        _mockUserManager.Setup(x => x.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
-            .ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetClaimsAsync(user))
-            .ReturnsAsync(claims);
+        // Note: Authorization is handled by [Authorize] attribute at runtime,
+        // so in unit tests we're testing the controller logic assuming authorization passed
 
         // Act
         var result = await _controller.CreateLeermiddel(leermiddel);
@@ -203,53 +176,28 @@ public class LeermiddelenControllerTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<CreatedAtActionResult>();
         var createdResult = result.Result as CreatedAtActionResult;
-        var createdLeermiddel = createdResult?.Value as Leermiddel;
-        createdLeermiddel.Should().NotBeNull();
-        createdLeermiddel!.Titel.Should().Be(leermiddel.Titel);
-        createdLeermiddel.Id.Should().NotBe(Guid.Empty);
+        var returnedLeermiddel = createdResult?.Value as Leermiddel;
+        returnedLeermiddel.Should().NotBeNull();
+        returnedLeermiddel!.Titel.Should().Be(leermiddel.Titel);
+        returnedLeermiddel.Id.Should().NotBe(Guid.Empty);
     }
 
     [Fact]
-    public async Task DeleteLeermiddel_WithoutInterneMedewerkerClaim_ReturnsForbid()
+    public async Task DeleteLeermiddel_WithValidId_DeletesLeermiddel()
     {
         // Arrange
-        var leermiddel = new Leermiddel
-        {
-            Id = Guid.NewGuid(),
-            Titel = "Test",
-            Beschrijving = "Beschrijving",
-            Link = "https://test.com",
-            AangemaaktOp = DateTime.UtcNow
-        };
+        var leermiddelId = Guid.NewGuid();
 
-        _context.Leermiddelen.Add(leermiddel);
-        await _context.SaveChangesAsync();
+        _mockLeermiddelRepo.Setup(x => x.DeleteAsync(leermiddelId))
+            .Returns(Task.CompletedTask);
 
-        var user = new ApplicationUser { Id = "user1" };
-        var claims = new List<Claim>();
-
-        // Setup authenticated user without InterneMedewerker claim
-        var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "test") }, "TestAuth"));
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
-        };
-
-        _mockUserManager.Setup(x => x.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
-            .ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.GetClaimsAsync(user))
-            .ReturnsAsync(claims);
+        // Note: Authorization is handled by [Authorize] attribute at runtime
 
         // Act
-        var result = await _controller.DeleteLeermiddel(leermiddel.Id);
+        var result = await _controller.DeleteLeermiddel(leermiddelId);
 
         // Assert
-        result.Should().BeOfType<ForbidResult>();
-    }
-
-    public void Dispose()
-    {
-        _context.Database.EnsureDeleted();
-        _context.Dispose();
+        result.Should().BeOfType<NoContentResult>();
+        _mockLeermiddelRepo.Verify(x => x.DeleteAsync(leermiddelId), Times.Once);
     }
 }
