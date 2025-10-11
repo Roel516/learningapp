@@ -1,8 +1,10 @@
+using LearningResourcesApp.Authorization;
 using LearningResourcesApp.Data;
 using LearningResourcesApp.Models;
+using LearningResourcesApp.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace LearningResourcesApp.Controllers;
 
@@ -10,16 +12,19 @@ namespace LearningResourcesApp.Controllers;
 [Route("api/[controller]")]
 public class LeermiddelenController : ControllerBase
 {
-    private readonly LeermiddelContext _context;
+    private readonly ILeermiddelRepository _leermiddelRepository;
+    private readonly IReactieRepository _reactieRepository;
     private readonly ILogger<LeermiddelenController> _logger;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public LeermiddelenController(
-        LeermiddelContext context,
+        ILeermiddelRepository leermiddelRepository,
+        IReactieRepository reactieRepository,
         ILogger<LeermiddelenController> logger,
         UserManager<ApplicationUser> userManager)
     {
-        _context = context;
+        _leermiddelRepository = leermiddelRepository;
+        _reactieRepository = reactieRepository;
         _logger = logger;
         _userManager = userManager;
     }
@@ -30,10 +35,7 @@ public class LeermiddelenController : ControllerBase
     {
         try
         {
-            var leermiddelen = await _context.Leermiddelen
-                .Include(l => l.Reacties)
-                .OrderByDescending(l => l.AangemaaktOp)
-                .ToListAsync();
+            var leermiddelen = (await _leermiddelRepository.GetAllAsync()).ToList();
 
             // Controleer of gebruiker interne medewerker is
             var isInterneMedewerker = await IsInterneMedewerker();
@@ -62,7 +64,7 @@ public class LeermiddelenController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij ophalen leermiddelen");
+            _logger.LogError(ex, "Error retrieving leermiddelen");
             return StatusCode(500, "Er is een fout opgetreden bij het ophalen van leermiddelen");
         }
     }
@@ -73,9 +75,7 @@ public class LeermiddelenController : ControllerBase
     {
         try
         {
-            var leermiddel = await _context.Leermiddelen
-                .Include(l => l.Reacties)
-                .FirstOrDefaultAsync(l => l.Id == id);
+            var leermiddel = await _leermiddelRepository.GetByIdAsync(id);
 
             if (leermiddel == null)
             {
@@ -106,193 +106,141 @@ public class LeermiddelenController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij ophalen leermiddel {Id}", id);
+            _logger.LogError(ex, "Error retrieving leermiddel {LeermiddelId}", id);
             return StatusCode(500, "Er is een fout opgetreden bij het ophalen van het leermiddel");
         }
     }
 
     // POST: api/leermiddelen
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<ActionResult<Leermiddel>> CreateLeermiddel(Leermiddel leermiddel)
     {
         try
         {
-            // Alleen interne medewerkers kunnen leermiddelen aanmaken
-            var isInterneMedewerker = await IsInterneMedewerker();
-            if (!isInterneMedewerker)
+            if (!ModelState.IsValid)
             {
-                return Forbid();
+                return BadRequest(ModelState);
             }
 
-            leermiddel.Id = Guid.NewGuid();
-            leermiddel.AangemaaktOp = DateTime.Now;
-            leermiddel.Reacties = new List<Reactie>();
+            var createdLeermiddel = await _leermiddelRepository.CreateAsync(leermiddel);
 
-            _context.Leermiddelen.Add(leermiddel);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetLeermiddel), new { id = leermiddel.Id }, leermiddel);
+            return CreatedAtAction(nameof(GetLeermiddel), new { id = createdLeermiddel.Id }, createdLeermiddel);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij aanmaken leermiddel");
+            _logger.LogError(ex, "Error creating leermiddel");
             return StatusCode(500, "Er is een fout opgetreden bij het aanmaken van het leermiddel");
         }
     }
 
     // PUT: api/leermiddelen/{id}
     [HttpPut("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<IActionResult> UpdateLeermiddel(Guid id, Leermiddel leermiddel)
     {
-        // Alleen interne medewerkers kunnen leermiddelen updaten
-        var isInterneMedewerker = await IsInterneMedewerker();
-        if (!isInterneMedewerker)
-        {
-            return Forbid();
-        }
-
         if (id != leermiddel.Id)
         {
-            return BadRequest();
+            return BadRequest("ID mismatch");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
         }
 
         try
         {
-            _context.Entry(leermiddel).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            await _leermiddelRepository.UpdateAsync(leermiddel);
             return NoContent();
         }
-        catch (DbUpdateConcurrencyException)
+        catch (KeyNotFoundException)
         {
-            if (!await LeermiddelExists(id))
-            {
-                return NotFound();
-            }
-            throw;
+            return NotFound();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij updaten leermiddel {Id}", id);
+            _logger.LogError(ex, "Error updating leermiddel {LeermiddelId}", id);
             return StatusCode(500, "Er is een fout opgetreden bij het updaten van het leermiddel");
         }
     }
 
     // DELETE: api/leermiddelen/{id}
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<IActionResult> DeleteLeermiddel(Guid id)
     {
-        // Alleen interne medewerkers kunnen leermiddelen verwijderen
-        var isInterneMedewerker = await IsInterneMedewerker();
-        if (!isInterneMedewerker)
-        {
-            return Forbid();
-        }
-
         try
         {
-            var leermiddel = await _context.Leermiddelen.FindAsync(id);
-            if (leermiddel == null)
-            {
-                return NotFound();
-            }
-
-            _context.Leermiddelen.Remove(leermiddel);
-            await _context.SaveChangesAsync();
-
+            await _leermiddelRepository.DeleteAsync(id);
             return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij verwijderen leermiddel {Id}", id);
+            _logger.LogError(ex, "Error deleting leermiddel {LeermiddelId}", id);
             return StatusCode(500, "Er is een fout opgetreden bij het verwijderen van het leermiddel");
         }
     }
 
     // GET: api/leermiddelen/reacties/pending
     [HttpGet("reacties/pending")]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<ActionResult<IEnumerable<Reactie>>> GetPendingReacties()
     {
         try
         {
-            // Alleen interne medewerkers kunnen pending reacties zien
-            var isInterneMedewerker = await IsInterneMedewerker();
-            if (!isInterneMedewerker)
-            {
-                return Forbid();
-            }
-
-            var pendingReacties = await _context.Reacties
-                .Where(r => !r.IsGoedgekeurd)
-                .OrderBy(r => r.AangemaaktOp)
-                .ToListAsync();
-
+            var pendingReacties = await _reactieRepository.GetPendingAsync();
             return Ok(pendingReacties);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij ophalen pending reacties");
+            _logger.LogError(ex, "Error retrieving pending reacties");
             return StatusCode(500, "Er is een fout opgetreden bij het ophalen van pending reacties");
         }
     }
 
     // PUT: api/leermiddelen/reacties/{id}/approve
     [HttpPut("reacties/{id}/approve")]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<IActionResult> ApproveReactie(Guid id)
     {
         try
         {
-            // Alleen interne medewerkers kunnen reacties goedkeuren
-            var isInterneMedewerker = await IsInterneMedewerker();
-            if (!isInterneMedewerker)
-            {
-                return Forbid();
-            }
-
-            var reactie = await _context.Reacties.FindAsync(id);
-            if (reactie == null)
-            {
-                return NotFound();
-            }
-
-            reactie.IsGoedgekeurd = true;
-            await _context.SaveChangesAsync();
-
+            await _reactieRepository.ApproveAsync(id);
             return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij goedkeuren reactie {Id}", id);
+            _logger.LogError(ex, "Error approving reactie {ReactieId}", id);
             return StatusCode(500, "Er is een fout opgetreden bij het goedkeuren van de reactie");
         }
     }
 
     // DELETE: api/leermiddelen/reacties/{id}
     [HttpDelete("reacties/{id}")]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<IActionResult> DeleteReactie(Guid id)
     {
         try
         {
-            // Alleen interne medewerkers kunnen reacties verwijderen
-            var isInterneMedewerker = await IsInterneMedewerker();
-            if (!isInterneMedewerker)
-            {
-                return Forbid();
-            }
-
-            var reactie = await _context.Reacties.FindAsync(id);
-            if (reactie == null)
-            {
-                return NotFound();
-            }
-
-            _context.Reacties.Remove(reactie);
-            await _context.SaveChangesAsync();
-
+            await _reactieRepository.DeleteAsync(id);
             return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij verwijderen reactie {Id}", id);
+            _logger.LogError(ex, "Error deleting reactie {ReactieId}", id);
             return StatusCode(500, "Er is een fout opgetreden bij het verwijderen van de reactie");
         }
     }
@@ -303,18 +251,18 @@ public class LeermiddelenController : ControllerBase
     {
         try
         {
-            var leermiddel = await _context.Leermiddelen
-                .Include(l => l.Reacties)
-                .FirstOrDefaultAsync(l => l.Id == id);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
+            var leermiddel = await _leermiddelRepository.GetByIdAsync(id);
             if (leermiddel == null)
             {
                 return NotFound();
             }
 
-            reactie.Id = Guid.NewGuid();
             reactie.LeermiddelId = id;
-            reactie.AangemaaktOp = DateTime.Now;
 
             // Controleer of gebruiker interne medewerker is
             var isInterneMedewerker = false;
@@ -331,14 +279,13 @@ public class LeermiddelenController : ControllerBase
             // Reacties van interne medewerkers worden automatisch goedgekeurd
             reactie.IsGoedgekeurd = isInterneMedewerker;
 
-            _context.Reacties.Add(reactie);
-            await _context.SaveChangesAsync();
+            var createdReactie = await _reactieRepository.CreateAsync(reactie);
 
-            return CreatedAtAction(nameof(GetLeermiddel), new { id = leermiddel.Id }, reactie);
+            return CreatedAtAction(nameof(GetLeermiddel), new { id = leermiddel.Id }, createdReactie);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fout bij toevoegen reactie aan leermiddel {Id}", id);
+            _logger.LogError(ex, "Error adding reactie to leermiddel {LeermiddelId}", id);
             return StatusCode(500, "Er is een fout opgetreden bij het toevoegen van de reactie");
         }
     }
@@ -358,10 +305,5 @@ public class LeermiddelenController : ControllerBase
 
         var claims = await _userManager.GetClaimsAsync(user);
         return claims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
-    }
-
-    private async Task<bool> LeermiddelExists(Guid id)
-    {
-        return await _context.Leermiddelen.AnyAsync(e => e.Id == id);
     }
 }

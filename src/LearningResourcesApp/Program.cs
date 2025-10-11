@@ -1,5 +1,11 @@
+using LearningResourcesApp.Authorization;
 using LearningResourcesApp.Data;
 using LearningResourcesApp.Models;
+using LearningResourcesApp.Repositories;
+using LearningResourcesApp.Repositories.Interfaces;
+using LearningResourcesApp.Services;
+using LearningResourcesApp.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -11,11 +17,21 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Register DateTimeProvider
+builder.Services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
+
+// Register Repositories
+builder.Services.AddScoped<ILeermiddelRepository, LeermiddelRepository>();
+builder.Services.AddScoped<IReactieRepository, ReactieRepository>();
+
+// Register Authorization Handler
+builder.Services.AddSingleton<IAuthorizationHandler, InterneMedewerkerHandler>();
+
 // Configure Authorization Policies
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("InterneMedewerkerPolicy", policy =>
-        policy.RequireClaim(AppClaims.InterneMedewerker, "true"));
+    options.AddPolicy(AuthorizationPolicies.InterneMedewerker, policy =>
+        policy.Requirements.Add(new InterneMedewerkerRequirement()));
 });
 
 // Configure DbContext - SQL Server for both local (LocalDB) and Azure
