@@ -129,13 +129,4 @@ stages:
                   }
                 ]
 
-          - task: AzureCLI@2
-            displayName: 'Run database migrations'
-            inputs:
-              azureSubscription: '$(azureSubscription)'
-              scriptType: 'bash'
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                echo "Database migrations are automatically applied on application startup"
-                echo "Checking app service status..."
-                az webapp show --name $(webAppName) --resource-group $(resourceGroupName) --query state -o tsv
+

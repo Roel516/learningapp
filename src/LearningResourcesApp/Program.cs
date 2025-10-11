@@ -18,20 +18,14 @@ builder.Services.AddAuthorization(options =>
         policy.RequireClaim(AppClaims.InterneMedewerker, "true"));
 });
 
-// Configure DbContext - use SQL Server if connection string provided, otherwise SQLite
+// Configure DbContext - SQL Server for both local (LocalDB) and Azure
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (!string.IsNullOrEmpty(connectionString) && connectionString.Contains("Server=tcp:"))
-{
-    // Azure SQL Server (production)
-    builder.Services.AddDbContext<LeermiddelContext>(options =>
-        options.UseSqlServer(connectionString));
-}
-else
-{
-    // SQLite (local development)
-    builder.Services.AddDbContext<LeermiddelContext>(options =>
-        options.UseSqlite(connectionString ?? "Data Source=leermiddelen.db"));
-}
+builder.Services.AddDbContext<LeermiddelContext>(options =>
+    options.UseSqlServer(connectionString));
+
+var isLocalDb = connectionString?.Contains("localdb", StringComparison.OrdinalIgnoreCase) == true;
+var isAzure = connectionString?.Contains("database.windows.net", StringComparison.OrdinalIgnoreCase) == true;
+Console.WriteLine($"Using SQL Server: {(isLocalDb ? "LocalDB (Development)" : isAzure ? "Azure SQL Database (Production)" : "SQL Server")}");
 
 // Configure Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -76,14 +70,21 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<LeermiddelContext>();
+
+    // Pas migraties automatisch toe (werkt voor zowel LocalDB als Azure SQL)
+    Console.WriteLine("Applying database migrations...");
     context.Database.Migrate();
+    Console.WriteLine("Database migrations applied successfully.");
 
     // Seed admin user
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     await SeedAdminUser(userManager);
 
-    // Seed test data
-    await SeedLeermiddelen(context, userManager);
+    // Seed test data (alleen in development)
+    if (app.Environment.IsDevelopment())
+    {
+        await SeedLeermiddelen(context, userManager);
+    }
 }
 
 // Configure the HTTP request pipeline.

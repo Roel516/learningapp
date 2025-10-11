@@ -35,7 +35,14 @@
       "Bash(curl:*)",
       "Bash(scp:*)",
       "Bash(az webapp config show:*)",
-      "Bash(az webapp log tail:*)"
+      "Bash(az webapp log tail:*)",
+      "Bash(az webapp log download:*)",
+      "Bash(unzip:*)",
+      "Bash(if exist leermiddelen.db del /F leermiddelen.db)",
+      "Bash(if exist leermiddelen.db-shm del /F leermiddelen.db-shm)",
+      "Bash(if exist leermiddelen.db-wal del /F leermiddelen.db-wal)",
+      "mcp__ide__getDiagnostics",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
