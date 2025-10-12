@@ -4,6 +4,7 @@ using FluentAssertions;
 using LearningResourcesApp.Client.Layout;
 using LearningResourcesApp.Client.Models.Authenticatie;
 using LearningResourcesApp.Client.Services;
+using LearningResourcesApp.Client.Services.Interfaces;
 using LearningResourcesApp.Client.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -25,7 +26,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(null);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 
@@ -54,7 +55,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(gebruiker);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 
@@ -82,7 +83,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(googleUser);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 
@@ -119,7 +120,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(interneMedewerker);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 
@@ -149,7 +150,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(regularUser);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 
@@ -173,7 +174,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(null);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 
@@ -193,7 +194,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(null);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 
@@ -230,7 +231,7 @@ public class NavMenuComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(interneMedewerker);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
         this.AddTestAuthorization();
 

@@ -4,6 +4,7 @@ using FluentAssertions;
 using LearningResourcesApp.Client.Components.Pages.Gebruikersbeheer;
 using LearningResourcesApp.Client.Models.Authenticatie;
 using LearningResourcesApp.Client.Services;
+using LearningResourcesApp.Client.Services.Interfaces;
 using LearningResourcesApp.Client.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
@@ -24,7 +25,7 @@ public class GebruikersbeheerComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(null);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
 
         // Act
@@ -51,7 +52,7 @@ public class GebruikersbeheerComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(googleUser);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
 
         // Act
@@ -79,7 +80,7 @@ public class GebruikersbeheerComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(interneMedewerker);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
 
         // Act
@@ -108,7 +109,7 @@ public class GebruikersbeheerComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(interneMedewerker);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
 
         // Act
@@ -137,7 +138,7 @@ public class GebruikersbeheerComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(interneMedewerker);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
 
         // Act
@@ -171,7 +172,7 @@ public class GebruikersbeheerComponentTests : TestContext
         var authService = CreateAuthService();
         authService.SetHuidigeGebruiker(interneMedewerker);
 
-        Services.AddSingleton<AutenticatieService>(authService);
+        Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
 
         // Act
@@ -188,7 +189,7 @@ public class GebruikersbeheerComponentTests : TestContext
         var authService1 = CreateAuthService();
         authService1.SetHuidigeGebruiker(null);
 
-        Services.AddSingleton<AutenticatieService>(authService1);
+        Services.AddSingleton<IAutenticatieService>(authService1);
         Services.AddSingleton(new HttpClient());
 
         var cut1 = RenderComponent<Gebruikersbeheer>();
@@ -207,7 +208,7 @@ public class GebruikersbeheerComponentTests : TestContext
         };
         authService2.SetHuidigeGebruiker(googleUser);
 
-        ctx2.Services.AddSingleton<AutenticatieService>(authService2);
+        ctx2.Services.AddSingleton<IAutenticatieService>(authService2);
         ctx2.Services.AddSingleton(new HttpClient());
 
         var cut2 = ctx2.RenderComponent<Gebruikersbeheer>();
@@ -226,7 +227,7 @@ public class GebruikersbeheerComponentTests : TestContext
         };
         authService3.SetHuidigeGebruiker(interneMedewerker);
 
-        ctx3.Services.AddSingleton<AutenticatieService>(authService3);
+        ctx3.Services.AddSingleton<IAutenticatieService>(authService3);
         ctx3.Services.AddSingleton(new HttpClient());
 
         var cut3 = ctx3.RenderComponent<Gebruikersbeheer>();

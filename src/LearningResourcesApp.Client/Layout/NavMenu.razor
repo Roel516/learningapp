@@ -1,6 +1,6 @@
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Models.Leermiddelen
-@inject AutenticatieService AutenticatieService
+@inject IAutenticatieService AutenticatieService
 @inject HttpClient Http
 @implements IDisposable
 
@@ -8,7 +8,7 @@
     <div class="container-fluid">
         <a class="navbar-brand" href="">Leermiddelen App</a>
 
-        @if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker != null)
+        @if (AutenticatieService.IsIngelogd)
         {
             <div class="d-flex align-items-center">
                 <span class="text-white me-3">@AutenticatieService.HuidigeGebruiker.Naam</span>
@@ -54,14 +54,13 @@
                 </NavLink>
             </div>
         }
-        else
+        else if (!AutenticatieService.IsIngelogd)
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="inloggen">
                     <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Inloggen
                 </NavLink>
             </div>
-
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="registreren">
                     <span class="bi bi-person-plus-fill" aria-hidden="true"></span> Registreren

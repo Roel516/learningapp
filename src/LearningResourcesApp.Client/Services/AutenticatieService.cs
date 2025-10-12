@@ -1,11 +1,12 @@
 using LearningResourcesApp.Client.Models.Authenticatie;
+using LearningResourcesApp.Client.Services.Interfaces;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace LearningResourcesApp.Client.Services;
 
-public class AutenticatieService
+public class AutenticatieService : IAutenticatieService
 {
     private readonly HttpClient _httpClient;
     private readonly IJSRuntime _jsRuntime;
@@ -50,7 +51,7 @@ public class AutenticatieService
     }
 
     // Registreer met email/wachtwoord (Identity)
-    public async Task<(bool Succes, string? Foutmelding)> Registreren(RegisterRequest request)
+    public async Task<AuthResult> Registreren(RegisterRequest request)
     {
         try
         {
@@ -68,20 +69,20 @@ public class AutenticatieService
                     IsInterneMedewerker = result.Gebruiker.IsInterneMedewerker
                 };
                 AutenticatieGewijzigd?.Invoke();
-                return (true, null);
+                return AuthResult.Success();
             }
 
-            return (false, result?.Foutmelding ?? "Registratie mislukt");
+            return AuthResult.Failure(result?.Foutmelding ?? "Registratie mislukt");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Fout bij registreren: {ex.Message}");
-            return (false, "Er is een fout opgetreden bij registreren");
+            return AuthResult.Failure("Er is een fout opgetreden bij registreren");
         }
     }
 
     // Login met email/wachtwoord (Identity)
-    public async Task<(bool Succes, string? Foutmelding)> Inloggen(LoginRequest request)
+    public async Task<AuthResult> Inloggen(LoginRequest request)
     {
         try
         {
@@ -99,15 +100,15 @@ public class AutenticatieService
                     IsInterneMedewerker = result.Gebruiker.IsInterneMedewerker
                 };
                 AutenticatieGewijzigd?.Invoke();
-                return (true, null);
+                return AuthResult.Success();
             }
 
-            return (false, result?.Foutmelding ?? "Login mislukt");
+            return AuthResult.Failure(result?.Foutmelding ?? "Login mislukt");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Fout bij inloggen: {ex.Message}");
-            return (false, "Er is een fout opgetreden bij inloggen");
+            return AuthResult.Failure("Er is een fout opgetreden bij inloggen");
         }
     }
 
@@ -130,58 +131,140 @@ public class AutenticatieService
     }
 
     // Verwerk OAuth callback
-    public async Task<(bool Succes, string? Foutmelding)> VerwerkOAuthCallback(string idToken, string accessToken)
+    public async Task<AuthResult> VerwerkOAuthCallback(string idToken, string accessToken)
     {
         try
         {
-            // Decode JWT token (vereenvoudigde versie - in productie zou je dit valideren)
-            var payload = DecodeJwtPayload(idToken);
-
-            if (payload.HasValue)
+            // Haal en valideer nonce
+            var storedNonce = await HaalEnVerwijderNonce();
+            if (string.IsNullOrEmpty(storedNonce))
             {
-                var payloadValue = payload.Value;
-                var googleEmail = payloadValue.GetProperty("email").GetString() ?? "";
-                var googleNaam = payloadValue.GetProperty("name").GetString() ?? "Onbekende gebruiker";
-                var googleId = payloadValue.GetProperty("sub").GetString() ?? "";
-
-                // Stuur Google info naar backend om gebruiker te maken/ophalen
-                var externalLoginRequest = new
-                {
-                    Provider = "Google",
-                    ProviderId = googleId,
-                    Email = googleEmail,
-                    Naam = googleNaam
-                };
-
-                var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/external-login", externalLoginRequest);
-                var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-                if (result?.Succes == true && result.Gebruiker != null)
-                {
-                    _huidigeGebruiker = new Gebruiker
-                    {
-                        Id = result.Gebruiker.Id,
-                        Naam = result.Gebruiker.Naam,
-                        Email = result.Gebruiker.Email,
-                        ProfielAfbeelding = payloadValue.TryGetProperty("picture", out var pic) ? pic.GetString() ?? "" : "",
-                        IsIngelogd = true,
-                        IsInterneMedewerker = result.Gebruiker.IsInterneMedewerker
-                    };
-
-                    AutenticatieGewijzigd?.Invoke();
-                    return (true, null);
-                }
-
-                return (false, result?.Foutmelding ?? "Google login mislukt");
+                return AuthResult.Failure("Ongeldige authenticatie sessie (nonce niet gevonden)");
             }
 
-            return (false, "Kon Google token niet verwerken");
+            // Decode JWT token
+            var payload = DecodeJwtPayload(idToken);
+            if (!payload.HasValue)
+            {
+                return AuthResult.Failure("Ongeldig ID token formaat");
+            }
+
+            var payloadValue = payload.Value;
+
+            // Valideer JWT token
+            var validatieResultaat = ValideerJwtToken(payloadValue, storedNonce);
+            if (!validatieResultaat.IsGeldig)
+            {
+                return AuthResult.Failure(validatieResultaat.Foutmelding);
+            }
+
+            // Extract gebruiker informatie
+            var gebruikerInfo = ExtractGebruikerInfo(payloadValue);
+            if (!gebruikerInfo.IsGeldig)
+            {
+                return AuthResult.Failure(gebruikerInfo.Foutmelding);
+            }
+
+            // Stuur Google info naar backend om gebruiker te maken/ophalen
+            var externalLoginRequest = new
+            {
+                Provider = "Google",
+                ProviderId = gebruikerInfo.GoogleId,
+                Email = gebruikerInfo.Email,
+                Naam = gebruikerInfo.Naam
+            };
+
+            var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/external-login", externalLoginRequest);
+            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+            if (result?.Succes == true && result.Gebruiker != null)
+            {
+                _huidigeGebruiker = new Gebruiker
+                {
+                    Id = result.Gebruiker.Id,
+                    Naam = result.Gebruiker.Naam,
+                    Email = result.Gebruiker.Email,
+                    IsIngelogd = true,
+                    IsInterneMedewerker = result.Gebruiker.IsInterneMedewerker
+                };
+
+                AutenticatieGewijzigd?.Invoke();
+                return AuthResult.Success();
+            }
+
+            return AuthResult.Failure(result?.Foutmelding ?? "Google login mislukt");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Fout bij verwerken OAuth callback: {ex.Message}");
-            return (false, "Er is een fout opgetreden bij Google login");
+            return AuthResult.Failure("Er is een fout opgetreden bij Google login");
         }
+    }
+
+    private async Task<string?> HaalEnVerwijderNonce()
+    {
+        var nonce = await _jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", "oauth_nonce");
+        await _jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "oauth_nonce");
+        return nonce;
+    }
+
+    private ValidationResult ValideerJwtToken(JsonElement payload, string verwachteNonce)
+    {
+        // Validatie 1: Controleer nonce (replay attack preventie)
+        if (!payload.TryGetProperty("nonce", out var nonceElement) ||
+            nonceElement.GetString() != verwachteNonce)
+        {
+            return ValidationResult.Failure("Ongeldige authenticatie token (nonce verificatie mislukt)");
+        }
+
+        // Validatie 2: Controleer issuer (moet Google zijn)
+        if (!payload.TryGetProperty("iss", out var issElement) ||
+            (issElement.GetString() != "https://accounts.google.com" &&
+             issElement.GetString() != "accounts.google.com"))
+        {
+            return ValidationResult.Failure("Ongeldige token issuer");
+        }
+
+        // Validatie 3: Controleer expiratie
+        if (payload.TryGetProperty("exp", out var expElement))
+        {
+            var expTime = DateTimeOffset.FromUnixTimeSeconds(expElement.GetInt64());
+            if (expTime < DateTimeOffset.UtcNow)
+            {
+                return ValidationResult.Failure("Token is verlopen");
+            }
+        }
+        else
+        {
+            return ValidationResult.Failure("Token heeft geen expiratie timestamp");
+        }
+
+        // Validatie 4: Controleer issued-at time (niet te oud)
+        if (payload.TryGetProperty("iat", out var iatElement))
+        {
+            var iatTime = DateTimeOffset.FromUnixTimeSeconds(iatElement.GetInt64());
+            var maxAge = TimeSpan.FromMinutes(10); // Token mag niet ouder zijn dan 10 minuten
+            if (DateTimeOffset.UtcNow - iatTime > maxAge)
+            {
+                return ValidationResult.Failure("Token is te oud");
+            }
+        }
+
+        return ValidationResult.Success();
+    }
+
+    private GebruikerInfoResult ExtractGebruikerInfo(JsonElement payload)
+    {
+        var email = payload.GetProperty("email").GetString() ?? "";
+        var naam = payload.GetProperty("name").GetString() ?? "Onbekende gebruiker";
+        var googleId = payload.GetProperty("sub").GetString() ?? "";
+
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(googleId))
+        {
+            return GebruikerInfoResult.Failure("Onvolledige gebruikersinformatie in token");
+        }
+
+        return GebruikerInfoResult.Success(email, naam, googleId);
     }
 
     private JsonElement? DecodeJwtPayload(string token)

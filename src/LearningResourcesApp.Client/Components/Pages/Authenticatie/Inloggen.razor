@@ -2,7 +2,7 @@
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Models.Authenticatie
 @using System.Text.Json
-@inject AutenticatieService AutenticatieService
+@inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
@@ -126,15 +126,15 @@
             foutmelding = string.Empty;
             isBezig = true;
 
-            var (succes, error) = await AutenticatieService.Inloggen(loginRequest);
+            var result = await AutenticatieService.Inloggen(loginRequest);
 
-            if (succes)
+            if (result.Succes)
             {
                 Navigatie.NavigateTo("/");
             }
             else
             {
-                foutmelding = error ?? "Inloggen mislukt";
+                foutmelding = result.Foutmelding ?? "Inloggen mislukt";
             }
         }
         catch (Exception ex)

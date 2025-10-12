@@ -1,7 +1,7 @@
 @page "/registreren"
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Models.Authenticatie
-@inject AutenticatieService AutenticatieService
+@inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
 
 <PageTitle>Registreren</PageTitle>
@@ -92,39 +92,19 @@
             foutmelding = string.Empty;
             succesmelding = string.Empty;
 
-            // Valideer wachtwoord bevestiging
-            if (registerRequest.Wachtwoord != wachtwoordBevestiging)
+            // Valideer registratie
+            var validatieResultaat = ValideerRegistratie();
+            if (!validatieResultaat.IsGeldig)
             {
-                foutmelding = "De wachtwoorden komen niet overeen";
-                return;
-            }
-
-            // Valideer wachtwoord lengte
-            if (string.IsNullOrEmpty(registerRequest.Wachtwoord) || registerRequest.Wachtwoord.Length < 6)
-            {
-                foutmelding = "Wachtwoord moet minimaal 6 tekens lang zijn";
-                return;
-            }
-
-            // Valideer naam
-            if (string.IsNullOrWhiteSpace(registerRequest.Naam))
-            {
-                foutmelding = "Naam is verplicht";
-                return;
-            }
-
-            // Valideer email
-            if (string.IsNullOrWhiteSpace(registerRequest.Email))
-            {
-                foutmelding = "Email is verplicht";
+                foutmelding = validatieResultaat.Foutmelding;
                 return;
             }
 
             isBezig = true;
 
-            var (succes, error) = await AutenticatieService.Registreren(registerRequest);
+            var result = await AutenticatieService.Registreren(registerRequest);
 
-            if (succes)
+            if (result.Succes)
             {
                 succesmelding = "Account succesvol aangemaakt! Je wordt doorgestuurd...";
                 await Task.Delay(1500); // Korte delay zodat gebruiker de melding ziet
@@ -132,7 +112,7 @@
             }
             else
             {
-                foutmelding = error ?? "Registratie mislukt";
+                foutmelding = result.Foutmelding ?? "Registratie mislukt";
             }
         }
         catch (Exception ex)
@@ -143,5 +123,34 @@
         {
             isBezig = false;
         }
+    }
+
+    private ValidationResult ValideerRegistratie()
+    {
+        // Valideer email
+        if (string.IsNullOrWhiteSpace(registerRequest.Email))
+        {
+            return ValidationResult.Failure("Email is verplicht");
+        }
+
+        // Valideer naam
+        if (string.IsNullOrWhiteSpace(registerRequest.Naam))
+        {
+            return ValidationResult.Failure("Naam is verplicht");
+        }
+
+        // Valideer wachtwoord lengte
+        if (string.IsNullOrEmpty(registerRequest.Wachtwoord) || registerRequest.Wachtwoord.Length < 6)
+        {
+            return ValidationResult.Failure("Wachtwoord moet minimaal 6 tekens lang zijn");
+        }
+
+        // Valideer wachtwoord bevestiging
+        if (registerRequest.Wachtwoord != wachtwoordBevestiging)
+        {
+            return ValidationResult.Failure("De wachtwoorden komen niet overeen");
+        }
+
+        return ValidationResult.Success();
     }
 }

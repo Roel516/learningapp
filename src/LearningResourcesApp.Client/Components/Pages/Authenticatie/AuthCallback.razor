@@ -1,6 +1,6 @@
 @page "/authentication/login-callback"
 @using LearningResourcesApp.Client.Services
-@inject AutenticatieService AutenticatieService
+@inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
 @inject IJSRuntime JSRuntime
 
@@ -24,60 +24,83 @@
     {
         if (firstRender)
         {
-            try
+            await VerwerkAuthenticatieCallback();
+        }
+    }
+
+    private async Task VerwerkAuthenticatieCallback()
+    {
+        try
+        {
+            var fragment = await JSRuntime.InvokeAsync<string>("eval", "window.location.hash");
+
+            if (!string.IsNullOrEmpty(fragment))
             {
-                // Haal de hash fragment op uit de URL
-                var fragment = await JSRuntime.InvokeAsync<string>("eval", "window.location.hash");
-
-                if (!string.IsNullOrEmpty(fragment))
-                {
-                    // Parse de parameters uit het fragment
-                    var parameters = ParseFragment(fragment);
-
-                    if (parameters.ContainsKey("id_token"))
-                    {
-                        var idToken = parameters["id_token"];
-                        var accessToken = parameters.ContainsKey("access_token") ? parameters["access_token"] : "";
-
-                        statusBericht = "Gebruikersgegevens ophalen...";
-                        StateHasChanged();
-
-                        await AutenticatieService.VerwerkOAuthCallback(idToken, accessToken);
-
-                        statusBericht = "Succesvol ingelogd! Doorverwijzen...";
-                        StateHasChanged();
-
-                        await Task.Delay(1000);
-                        Navigatie.NavigateTo("/", true);
-                    }
-                    else if (parameters.ContainsKey("error"))
-                    {
-                        var error = parameters["error"];
-                        statusBericht = $"Fout bij inloggen: {error}";
-                        StateHasChanged();
-
-                        await Task.Delay(3000);
-                        Navigatie.NavigateTo("/inloggen");
-                    }
-                }
-                else
-                {
-                    statusBericht = "Geen authenticatiegegevens gevonden.";
-                    StateHasChanged();
-
-                    await Task.Delay(2000);
-                    Navigatie.NavigateTo("/inloggen");
-                }
+                await VerwerkFragment(fragment);
             }
-            catch (Exception ex)
+            else
             {
-                statusBericht = $"Er is een fout opgetreden: {ex.Message}";
-                StateHasChanged();
-
-                await Task.Delay(3000);
-                Navigatie.NavigateTo("/inloggen");
+                await ToonFoutEnNavigeerNaarLogin("Geen authenticatiegegevens gevonden.", 2000);
             }
         }
+        catch (Exception ex)
+        {
+            await ToonFoutEnNavigeerNaarLogin($"Er is een fout opgetreden: {ex.Message}", 3000);
+        }
+    }
+   
+
+    private async Task VerwerkFragment(string fragment)
+    {
+        var parameters = ParseFragment(fragment);
+
+        if (parameters.ContainsKey("id_token"))
+        {
+            await VerwerkSuccesvolleAuthenticatie(parameters);
+        }
+        else if (parameters.ContainsKey("error"))
+        {
+            await ToonFoutEnNavigeerNaarLogin($"Fout bij inloggen: {parameters["error"]}", 3000);
+        }
+    }
+
+    private async Task VerwerkSuccesvolleAuthenticatie(Dictionary<string, string> parameters)
+    {
+        var idToken = parameters["id_token"];
+        var accessToken = parameters.ContainsKey("access_token") ? parameters["access_token"] : "";
+
+        UpdateStatus("Gebruikersgegevens ophalen...");
+
+        var result = await AutenticatieService.VerwerkOAuthCallback(idToken, accessToken);
+
+        if (result.Succes)
+        {
+            await ToonSuccesEnNavigeerNaarHome();
+        }
+        else
+        {
+            await ToonFoutEnNavigeerNaarLogin($"Fout bij inloggen: {result.Foutmelding}", 3000);
+        }
+    }  
+
+    private async Task ToonSuccesEnNavigeerNaarHome()
+    {
+        UpdateStatus("Succesvol ingelogd! Doorverwijzen...");
+        await Task.Delay(1000);
+        Navigatie.NavigateTo("/", true);
+    }
+
+    private async Task ToonFoutEnNavigeerNaarLogin(string foutmelding, int delay)
+    {
+        UpdateStatus(foutmelding);
+        await Task.Delay(delay);
+        Navigatie.NavigateTo("/inloggen");
+    }
+
+    private void UpdateStatus(string bericht)
+    {
+        statusBericht = bericht;
+        StateHasChanged();
     }
 
     private Dictionary<string, string> ParseFragment(string fragment)

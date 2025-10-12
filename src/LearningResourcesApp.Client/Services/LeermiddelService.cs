@@ -1,9 +1,10 @@
 using LearningResourcesApp.Client.Models.Leermiddelen;
+using LearningResourcesApp.Client.Services.Interfaces;
 using System.Net.Http.Json;
 
 namespace LearningResourcesApp.Client.Services;
 
-public class LeermiddelService
+public class LeermiddelService : ILeermiddelService
 {
     private readonly HttpClient _httpClient;
     private const string ApiBaseUrl = "api/leermiddelen";

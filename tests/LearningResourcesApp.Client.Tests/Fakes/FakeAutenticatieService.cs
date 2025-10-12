@@ -1,28 +1,55 @@
 using LearningResourcesApp.Client.Models.Authenticatie;
-using LearningResourcesApp.Client.Services;
+using LearningResourcesApp.Client.Services.Interfaces;
 using Microsoft.JSInterop;
 
 namespace LearningResourcesApp.Client.Tests.Fakes;
 
-public class FakeAutenticatieService : AutenticatieService
+public class FakeAutenticatieService : IAutenticatieService
 {
-    private Gebruiker? _gebruiker;
+    private Gebruiker? _huidigeGebruiker;
 
-    public FakeAutenticatieService() : base(new HttpClient(), new FakeJSRuntime())
-    {
-    }
+    public event Action? AutenticatieGewijzigd;
+
+    public Gebruiker? HuidigeGebruiker => _huidigeGebruiker;
+    public bool IsIngelogd => _huidigeGebruiker?.IsIngelogd ?? false;
 
     public void SetHuidigeGebruiker(Gebruiker? gebruiker)
     {
-        _gebruiker = gebruiker;
-        // Use reflection to set the private field
-        var field = typeof(AutenticatieService).GetField("_huidigeGebruiker",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        field?.SetValue(this, gebruiker);
+        _huidigeGebruiker = gebruiker;
+        AutenticatieGewijzigd?.Invoke();
     }
 
-    public new Gebruiker? HuidigeGebruiker => _gebruiker;
-    public new bool IsIngelogd => _gebruiker?.IsIngelogd ?? false;
+    public Task Initialiseer()
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<AuthResult> Registreren(RegisterRequest request)
+    {
+        return Task.FromResult(AuthResult.Success());
+    }
+
+    public Task<AuthResult> Inloggen(LoginRequest request)
+    {
+        return Task.FromResult(AuthResult.Success());
+    }
+
+    public string GenereerGoogleLoginUrl(string clientId, string redirectUri)
+    {
+        return "https://fake-google-login.com";
+    }
+
+    public Task<AuthResult> VerwerkOAuthCallback(string idToken, string accessToken)
+    {
+        return Task.FromResult(AuthResult.Success());
+    }
+
+    public Task Uitloggen()
+    {
+        _huidigeGebruiker = null;
+        AutenticatieGewijzigd?.Invoke();
+        return Task.CompletedTask;
+    }
 }
 
 public class FakeJSRuntime : IJSRuntime
