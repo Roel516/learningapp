@@ -1,6 +1,6 @@
 namespace LearningResourcesApp.Client.Models.Authenticatie;
 
-public class GebruikerInfoResult
+public record GebruikerInfoResult
 {
     public bool IsGeldig { get; init; }
     public string Foutmelding { get; init; } = string.Empty;

@@ -1,6 +1,6 @@
 namespace LearningResourcesApp.Client.Models.Authenticatie;
 
-public class AuthResult
+public record AuthResult
 {
     public bool Succes { get; init; }
     public string? Foutmelding { get; init; }

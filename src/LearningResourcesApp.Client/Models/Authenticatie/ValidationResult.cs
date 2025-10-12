@@ -1,6 +1,6 @@
 namespace LearningResourcesApp.Client.Models.Authenticatie;
 
-public class ValidationResult
+public record ValidationResult
 {
     public bool IsGeldig { get; init; }
     public string Foutmelding { get; init; } = string.Empty;
