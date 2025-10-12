@@ -16,83 +16,89 @@ public class LeermiddelService : ILeermiddelService
 
     public async Task<List<Leermiddel>> HaalAlleLeermiddelenOp()
     {
-        try
-        {
-            var leermiddelen = await _httpClient.GetFromJsonAsync<List<Leermiddel>>(ApiBaseUrl);
-            return leermiddelen ?? new List<Leermiddel>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij ophalen leermiddelen: {ex.Message}");
-            return new List<Leermiddel>();
-        }
+        return await VoerGetLijstActieUit(
+            async () => await _httpClient.GetFromJsonAsync<List<Leermiddel>>(ApiBaseUrl),
+            "ophalen leermiddelen"
+        );
     }
 
     public async Task<Leermiddel?> HaalLeermiddelOpMetId(Guid id)
     {
-        try
-        {
-            return await _httpClient.GetFromJsonAsync<Leermiddel>($"{ApiBaseUrl}/{id}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij ophalen leermiddel: {ex.Message}");
-            return null;
-        }
+        return await VoerGetActieUit(
+            async () => await _httpClient.GetFromJsonAsync<Leermiddel>($"{ApiBaseUrl}/{id}"),
+            "ophalen leermiddel"
+        );
     }
 
     public async Task<bool> VoegLeermiddelToe(Leermiddel leermiddel)
     {
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync(ApiBaseUrl, leermiddel);
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij toevoegen leermiddel: {ex.Message}");
-            return false;
-        }
+        return await VoerApiActieUit(
+            async () => await _httpClient.PostAsJsonAsync(ApiBaseUrl, leermiddel),
+            "toevoegen leermiddel"
+        );
     }
 
     public async Task<bool> WijzigLeermiddel(Leermiddel leermiddel)
     {
-        try
-        {
-            var response = await _httpClient.PutAsJsonAsync($"{ApiBaseUrl}/{leermiddel.Id}", leermiddel);
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij wijzigen leermiddel: {ex.Message}");
-            return false;
-        }
+        return await VoerApiActieUit(
+            async () => await _httpClient.PutAsJsonAsync($"{ApiBaseUrl}/{leermiddel.Id}", leermiddel),
+            "wijzigen leermiddel"
+        );
     }
 
     public async Task<bool> VoegReactieToe(Guid leermiddelId, Reactie reactie)
     {
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/{leermiddelId}/reacties", reactie);
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij toevoegen reactie: {ex.Message}");
-            return false;
-        }
+        return await VoerApiActieUit(
+            async () => await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/{leermiddelId}/reacties", reactie),
+            "toevoegen reactie"
+        );
     }
 
     public async Task<bool> VerwijderLeermiddel(Guid id)
     {
+        return await VoerApiActieUit(
+            async () => await _httpClient.DeleteAsync($"{ApiBaseUrl}/{id}"),
+            "verwijderen leermiddel"
+        );
+    }
+
+    private async Task<List<T>> VoerGetLijstActieUit<T>(Func<Task<List<T>?>> actie, string actieBeschrijving)
+    {
         try
         {
-            var response = await _httpClient.DeleteAsync($"{ApiBaseUrl}/{id}");
+            var resultaat = await actie();
+            return resultaat ?? new List<T>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
+            return new List<T>();
+        }
+    }
+
+    private async Task<T?> VoerGetActieUit<T>(Func<Task<T?>> actie, string actieBeschrijving)
+    {
+        try
+        {
+            return await actie();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
+            return default;
+        }
+    }
+
+    private async Task<bool> VoerApiActieUit(Func<Task<HttpResponseMessage>> actie, string actieBeschrijving)
+    {
+        try
+        {
+            var response = await actie();
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Fout bij verwijderen leermiddel: {ex.Message}");
+            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
             return false;
         }
     }
