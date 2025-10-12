@@ -28,87 +28,99 @@ public class AutenticatieService : IAutenticatieService
     // Initialiseer authenticatie - controleer of gebruiker ingelogd is
     public async Task Initialiseer()
     {
-        try
+        await VoerActieMetFoutAfhandelingUit(async () =>
         {
             var response = await _httpClient.GetFromJsonAsync<AuthResponse>($"{ApiBaseUrl}/current-user");
             if (response?.Succes == true && response.Gebruiker != null)
             {
-                _huidigeGebruiker = new Gebruiker
-                {
-                    Id = response.Gebruiker.Id,
-                    Naam = response.Gebruiker.Naam,
-                    Email = response.Gebruiker.Email,
-                    IsIngelogd = true,
-                    IsInterneMedewerker = response.Gebruiker.IsInterneMedewerker
-                };
-                AutenticatieGewijzigd?.Invoke();
+                ZetHuidigeGebruiker(response.Gebruiker);
             }
-        }
-        catch (Exception ex)
+        }, "initialiseren authenticatie");
+    }
+
+    private void ZetHuidigeGebruiker(UserInfo gebruikerInfo)
+    {
+        _huidigeGebruiker = new Gebruiker
         {
-            Console.WriteLine($"Fout bij initialiseren authenticatie: {ex.Message}");
-        }
+            Id = gebruikerInfo.Id,
+            Naam = gebruikerInfo.Naam,
+            Email = gebruikerInfo.Email,
+            IsIngelogd = true,
+            IsInterneMedewerker = gebruikerInfo.IsInterneMedewerker
+        };
+        AutenticatieGewijzigd?.Invoke();
     }
 
     // Registreer met email/wachtwoord (Identity)
     public async Task<AuthResult> Registreren(RegisterRequest request)
     {
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/register", request);
-            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-            if (result?.Succes == true && result.Gebruiker != null)
-            {
-                _huidigeGebruiker = new Gebruiker
-                {
-                    Id = result.Gebruiker.Id,
-                    Naam = result.Gebruiker.Naam,
-                    Email = result.Gebruiker.Email,
-                    IsIngelogd = true,
-                    IsInterneMedewerker = result.Gebruiker.IsInterneMedewerker
-                };
-                AutenticatieGewijzigd?.Invoke();
-                return AuthResult.Success();
-            }
-
-            return AuthResult.Failure(result?.Foutmelding ?? "Registratie mislukt");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij registreren: {ex.Message}");
-            return AuthResult.Failure("Er is een fout opgetreden bij registreren");
-        }
+        return await VoerAuthenticatieActieUit(
+            async () => await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/register", request),
+            "Registratie mislukt",
+            "registreren"
+        );
     }
 
     // Login met email/wachtwoord (Identity)
     public async Task<AuthResult> Inloggen(LoginRequest request)
     {
+        return await VoerAuthenticatieActieUit(
+            async () => await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/login", request),
+            "Login mislukt",
+            "inloggen"
+        );
+    }
+
+    private async Task<AuthResult> VoerAuthenticatieActieUit(
+        Func<Task<HttpResponseMessage>> apiCall,
+        string defaultFoutmelding,
+        string actieBeschrijving)
+    {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/login", request);
+            var response = await apiCall();
             var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
 
             if (result?.Succes == true && result.Gebruiker != null)
             {
-                _huidigeGebruiker = new Gebruiker
-                {
-                    Id = result.Gebruiker.Id,
-                    Naam = result.Gebruiker.Naam,
-                    Email = result.Gebruiker.Email,
-                    IsIngelogd = true,
-                    IsInterneMedewerker = result.Gebruiker.IsInterneMedewerker
-                };
-                AutenticatieGewijzigd?.Invoke();
+                ZetHuidigeGebruiker(result.Gebruiker);
                 return AuthResult.Success();
             }
 
-            return AuthResult.Failure(result?.Foutmelding ?? "Login mislukt");
+            return AuthResult.Failure(result?.Foutmelding ?? defaultFoutmelding);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Fout bij inloggen: {ex.Message}");
-            return AuthResult.Failure("Er is een fout opgetreden bij inloggen");
+            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
+            return AuthResult.Failure($"Er is een fout opgetreden bij {actieBeschrijving}");
+        }
+    }
+
+    private async Task<AuthResult> VoerActieMetAuthResultUit(
+        Func<Task<AuthResult>> actie,
+        string actieBeschrijving,
+        string gebruikerFoutmelding)
+    {
+        try
+        {
+            return await actie();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
+            return AuthResult.Failure($"Er is een fout opgetreden bij {gebruikerFoutmelding}");
+        }
+    }
+
+    private async Task VoerActieMetFoutAfhandelingUit(Func<Task> actie, string actieBeschrijving)
+    {
+        try
+        {
+            await actie();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
         }
     }
 
@@ -133,23 +145,16 @@ public class AutenticatieService : IAutenticatieService
     // Verwerk OAuth callback
     public async Task<AuthResult> VerwerkOAuthCallback(string idToken, string accessToken)
     {
-        try
+        return await VoerActieMetAuthResultUit(async () =>
         {
-            // Valideer en decode het ID token
             var gebruikerInfo = await ValideerEnDecodeToken(idToken);
             if (!gebruikerInfo.IsGeldig)
             {
                 return AuthResult.Failure(gebruikerInfo.Foutmelding);
             }
 
-            // Registreer externe login bij backend
             return await RegistreerExterneLogin(gebruikerInfo);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij verwerken OAuth callback: {ex.Message}");
-            return AuthResult.Failure("Er is een fout opgetreden bij Google login");
-        }
+        }, "verwerken OAuth callback", "Google login");
     }
 
     private async Task<GebruikerInfoResult> ValideerEnDecodeToken(string idToken)
@@ -197,16 +202,7 @@ public class AutenticatieService : IAutenticatieService
 
         if (result?.Succes == true && result.Gebruiker != null)
         {
-            _huidigeGebruiker = new Gebruiker
-            {
-                Id = result.Gebruiker.Id,
-                Naam = result.Gebruiker.Naam,
-                Email = result.Gebruiker.Email,
-                IsIngelogd = true,
-                IsInterneMedewerker = result.Gebruiker.IsInterneMedewerker
-            };
-
-            AutenticatieGewijzigd?.Invoke();
+            ZetHuidigeGebruiker(result.Gebruiker);
             return AuthResult.Success();
         }
 
@@ -303,18 +299,12 @@ public class AutenticatieService : IAutenticatieService
 
     public async Task Uitloggen()
     {
-        try
+        await VoerActieMetFoutAfhandelingUit(async () =>
         {
             await _httpClient.PostAsync($"{ApiBaseUrl}/logout", null);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij uitloggen: {ex.Message}");
-        }
-        finally
-        {
-            _huidigeGebruiker = null;
-            AutenticatieGewijzigd?.Invoke();
-        }
+        }, "uitloggen");
+
+        _huidigeGebruiker = null;
+        AutenticatieGewijzigd?.Invoke();
     }
 }

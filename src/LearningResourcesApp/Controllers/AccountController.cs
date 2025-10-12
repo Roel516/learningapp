@@ -34,8 +34,8 @@ public class AccountController : ControllerBase
         }
 
         // Check of email al bestaat
-        var existingUser = await _userManager.FindByEmailAsync(request.Email);
-        if (existingUser != null)
+        var bestaandeGebruiker = await _userManager.FindByEmailAsync(request.Email);
+        if (bestaandeGebruiker != null)
         {
             return BadRequest(new AuthResponse
             {
@@ -44,6 +44,23 @@ public class AccountController : ControllerBase
             });
         }
 
+        var user = await MaakNieuweGebruiker(request);
+        if (user == null)
+        {
+            return BadRequest(new AuthResponse
+            {
+                Succes = false,
+                Foutmelding = "Kon gebruiker niet aanmaken"
+            });
+        }
+
+        await _signInManager.SignInAsync(user, isPersistent: true);
+
+        return Ok(MaakAuthResponse(user, isInterneMedewerker: false));
+    }
+
+    private async Task<ApplicationUser?> MaakNieuweGebruiker(RegisterRequest request)
+    {
         var user = new ApplicationUser
         {
             UserName = request.Email,
@@ -53,23 +70,12 @@ public class AccountController : ControllerBase
         };
 
         var result = await _userManager.CreateAsync(user, request.Wachtwoord);
+        return result.Succeeded ? user : null;
+    }
 
-        if (!result.Succeeded)
-        {
-            return BadRequest(new AuthResponse
-            {
-                Succes = false,
-                Foutmelding = string.Join(", ", result.Errors.Select(e => e.Description))
-            });
-        }
-
-        // Nieuwe gebruikers krijgen GEEN InterneMedewerker claim
-        // Deze kan later worden toegevoegd via gebruikersbeheer
-
-        // Automatisch inloggen na registratie
-        await _signInManager.SignInAsync(user, isPersistent: true);
-
-        return Ok(new AuthResponse
+    private static AuthResponse MaakAuthResponse(ApplicationUser user, bool isInterneMedewerker)
+    {
+        return new AuthResponse
         {
             Succes = true,
             Gebruiker = new UserInfo
@@ -77,9 +83,9 @@ public class AccountController : ControllerBase
                 Id = user.Id,
                 Naam = user.Naam ?? string.Empty,
                 Email = user.Email ?? string.Empty,
-                IsInterneMedewerker = false
+                IsInterneMedewerker = isInterneMedewerker
             }
-        });
+        };
     }
 
     [HttpPost("login")]
@@ -104,13 +110,8 @@ public class AccountController : ControllerBase
             });
         }
 
-        var result = await _signInManager.PasswordSignInAsync(
-            user.UserName ?? string.Empty,
-            request.Wachtwoord,
-            isPersistent: true,
-            lockoutOnFailure: false);
-
-        if (!result.Succeeded)
+        var signInSucceeded = await ValideerWachtwoord(user, request.Wachtwoord);
+        if (!signInSucceeded)
         {
             return Unauthorized(new AuthResponse
             {
@@ -119,21 +120,25 @@ public class AccountController : ControllerBase
             });
         }
 
-        // Check of gebruiker InterneMedewerker claim heeft
-        var claims = await _userManager.GetClaimsAsync(user);
-        var isInterneMedewerker = claims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
+        var isInterneMedewerker = await CheckIsInterneMedewerker(user);
+        return Ok(MaakAuthResponse(user, isInterneMedewerker));
+    }
 
-        return Ok(new AuthResponse
-        {
-            Succes = true,
-            Gebruiker = new UserInfo
-            {
-                Id = user.Id,
-                Naam = user.Naam ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                IsInterneMedewerker = isInterneMedewerker
-            }
-        });
+    private async Task<bool> ValideerWachtwoord(ApplicationUser user, string wachtwoord)
+    {
+        var result = await _signInManager.PasswordSignInAsync(
+            user.UserName ?? string.Empty,
+            wachtwoord,
+            isPersistent: true,
+            lockoutOnFailure: false);
+
+        return result.Succeeded;
+    }
+
+    private async Task<bool> CheckIsInterneMedewerker(ApplicationUser user)
+    {
+        var claims = await _userManager.GetClaimsAsync(user);
+        return claims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
     }
 
     [HttpPost("logout")]
@@ -195,88 +200,68 @@ public class AccountController : ControllerBase
             });
         }
 
-        // Zoek gebruiker op email
-        var user = await _userManager.FindByEmailAsync(request.Email);
-
+        var user = await ZoekOfMaakGebruiker(request);
         if (user == null)
         {
-            // Maak nieuwe gebruiker aan
-            user = new ApplicationUser
+            return BadRequest(new AuthResponse
             {
-                UserName = request.Email,
-                Email = request.Email,
-                Naam = request.Naam,
-                EmailConfirmed = true // Google heeft email al geverifieerd
-            };
-
-            var createResult = await _userManager.CreateAsync(user);
-            if (!createResult.Succeeded)
-            {
-                return BadRequest(new AuthResponse
-                {
-                    Succes = false,
-                    Foutmelding = "Kon gebruiker niet aanmaken"
-                });
-            }
-
-            // Koppel externe login
-            var addLoginResult = await _userManager.AddLoginAsync(user, new UserLoginInfo(
-                request.Provider,
-                request.ProviderId,
-                request.Provider));
-
-            if (!addLoginResult.Succeeded)
-            {
-                return BadRequest(new AuthResponse
-                {
-                    Succes = false,
-                    Foutmelding = "Kon externe login niet koppelen"
-                });
-            }
+                Succes = false,
+                Foutmelding = "Kon gebruiker niet aanmaken"
+            });
         }
-        else
+
+        var loginGekoppeld = await KoppelExterneLogin(user, request);
+        if (!loginGekoppeld)
         {
-            // Controleer of externe login al gekoppeld is
-            var logins = await _userManager.GetLoginsAsync(user);
-            var externalLogin = logins.FirstOrDefault(l => l.LoginProvider == request.Provider && l.ProviderKey == request.ProviderId);
-
-            if (externalLogin == null)
+            return BadRequest(new AuthResponse
             {
-                // Koppel nieuwe externe login aan bestaande gebruiker
-                var addLoginResult = await _userManager.AddLoginAsync(user, new UserLoginInfo(
-                    request.Provider,
-                    request.ProviderId,
-                    request.Provider));
-
-                if (!addLoginResult.Succeeded)
-                {
-                    return BadRequest(new AuthResponse
-                    {
-                        Succes = false,
-                        Foutmelding = "Kon externe login niet koppelen"
-                    });
-                }
-            }
+                Succes = false,
+                Foutmelding = "Kon externe login niet koppelen"
+            });
         }
 
-        // Log gebruiker in
         await _signInManager.SignInAsync(user, isPersistent: true);
 
-        // Check of gebruiker InterneMedewerker claim heeft (Google gebruikers hebben deze niet)
-        var externalUserClaims = await _userManager.GetClaimsAsync(user);
-        var isInterneMedewerker = externalUserClaims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
+        var isInterneMedewerker = await CheckIsInterneMedewerker(user);
+        return Ok(MaakAuthResponse(user, isInterneMedewerker));
+    }
 
-        return Ok(new AuthResponse
+    private async Task<ApplicationUser?> ZoekOfMaakGebruiker(ExternalLoginRequest request)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user != null)
         {
-            Succes = true,
-            Gebruiker = new UserInfo
-            {
-                Id = user.Id,
-                Naam = user.Naam ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                IsInterneMedewerker = isInterneMedewerker
-            }
-        });
+            return user;
+        }
+
+        // Maak nieuwe gebruiker aan voor externe login
+        var nieuweGebruiker = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            Naam = request.Naam,
+            EmailConfirmed = true // Google heeft email al geverifieerd
+        };
+
+        var createResult = await _userManager.CreateAsync(nieuweGebruiker);
+        return createResult.Succeeded ? nieuweGebruiker : null;
+    }
+
+    private async Task<bool> KoppelExterneLogin(ApplicationUser user, ExternalLoginRequest request)
+    {
+        var logins = await _userManager.GetLoginsAsync(user);
+        var bestaandeLogin = logins.FirstOrDefault(l =>
+            l.LoginProvider == request.Provider &&
+            l.ProviderKey == request.ProviderId);
+
+        if (bestaandeLogin != null)
+        {
+            return true; // Login is al gekoppeld
+        }
+
+        var loginInfo = new UserLoginInfo(request.Provider, request.ProviderId, request.Provider);
+        var addLoginResult = await _userManager.AddLoginAsync(user, loginInfo);
+        return addLoginResult.Succeeded;
     }
 
     // GET: api/account/users - Lijst van alle gebruikers (alleen voor interne medewerkers)
