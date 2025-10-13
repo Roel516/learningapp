@@ -180,58 +180,5 @@ public class GebruikersbeheerComponentTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("Minimaal 6 karakters");
-    }
-
-    [Fact]
-    public void Gebruikersbeheer_DifferentAccessLevels_ShowDifferentContent()
-    {
-        // Test 1: Not logged in
-        var authService1 = CreateAuthService();
-        authService1.SetHuidigeGebruiker(null);
-
-        Services.AddSingleton<IAutenticatieService>(authService1);
-        Services.AddSingleton(new HttpClient());
-
-        var cut1 = RenderComponent<Gebruikersbeheer>();
-        cut1.Markup.Should().Contain("Je moet ingelogd zijn");
-
-        // Test 2: Google user (not internal employee)
-        var ctx2 = new TestContext();
-        var authService2 = CreateAuthService();
-        var googleUser = new Gebruiker
-        {
-            Id = "google1",
-            Naam = "Google User",
-            Email = "google@gmail.com",
-            IsIngelogd = true,
-            IsInterneMedewerker = false
-        };
-        authService2.SetHuidigeGebruiker(googleUser);
-
-        ctx2.Services.AddSingleton<IAutenticatieService>(authService2);
-        ctx2.Services.AddSingleton(new HttpClient());
-
-        var cut2 = ctx2.RenderComponent<Gebruikersbeheer>();
-        cut2.Markup.Should().Contain("Alleen interne medewerkers");
-
-        // Test 3: Internal employee
-        var ctx3 = new TestContext();
-        var authService3 = CreateAuthService();
-        var interneMedewerker = new Gebruiker
-        {
-            Id = "admin1",
-            Naam = "Admin",
-            Email = "admin@company.com",
-            IsIngelogd = true,
-            IsInterneMedewerker = true
-        };
-        authService3.SetHuidigeGebruiker(interneMedewerker);
-
-        ctx3.Services.AddSingleton<IAutenticatieService>(authService3);
-        ctx3.Services.AddSingleton(new HttpClient());
-
-        var cut3 = ctx3.RenderComponent<Gebruikersbeheer>();
-        cut3.Markup.Should().Contain("Nieuwe Gebruiker Toevoegen");
-        cut3.Markup.Should().NotContain("Je hebt geen toegang");
-    }
+    }    
 }

@@ -73,7 +73,7 @@ public class AccountController : ControllerBase
         return result.Succeeded ? user : null;
     }
 
-    private static AuthResponse MaakAuthResponse(ApplicationUser user, bool isInterneMedewerker)
+    private AuthResponse MaakAuthResponse(ApplicationUser user, bool isInterneMedewerker)
     {
         return new AuthResponse
         {
@@ -171,21 +171,9 @@ public class AccountController : ControllerBase
             });
         }
 
-        // Check of gebruiker InterneMedewerker claim heeft
-        var userClaims = await _userManager.GetClaimsAsync(user);
-        var isInterneMedewerker = userClaims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
 
-        return Ok(new AuthResponse
-        {
-            Succes = true,
-            Gebruiker = new UserInfo
-            {
-                Id = user.Id,
-                Naam = user.Naam ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                IsInterneMedewerker = isInterneMedewerker
-            }
-        });
+        var isInterneMedewerker = await CheckIsInterneMedewerker(user);
+        return Ok(MaakAuthResponse(user, isInterneMedewerker));
     }
 
     [HttpPost("external-login")]
@@ -276,8 +264,7 @@ public class AccountController : ControllerBase
             return Unauthorized();
         }
 
-        var currentUserClaims = await _userManager.GetClaimsAsync(currentUser);
-        var isInterneMedewerker = currentUserClaims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
+        var isInterneMedewerker = await CheckIsInterneMedewerker(currentUser);
 
         if (!isInterneMedewerker)
         {

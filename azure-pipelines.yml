@@ -19,7 +19,7 @@ stages:
   displayName: 'Build and Test'
   jobs:
   - job: BuildJob
-    displayName: 'Build Solution'
+    displayName: 'Install SDK'
     steps:
     - task: UseDotNet@2
       displayName: 'Setup .NET SDK'

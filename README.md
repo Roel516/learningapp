@@ -31,7 +31,7 @@ LearningResourcesApp/
 
 ## De Applicatie Uitvoeren
 
-1. Zorg ervoor dat je .NET 9.0 SDK geïnstalleerd hebt
+1. Zorg ervoor dat je .NET 8.0 SDK geïnstalleerd hebt
 2. Navigeer naar de projectdirectory
 3. Start de applicatie:
    ```bash
@@ -49,12 +49,8 @@ LearningResourcesApp/
 
 ## Technologie Stack
 
-- Blazor WebAssembly (.NET 9.0)
+- Blazor WebAssembly (.NET 8.0)
 - Bootstrap 5 voor styling
 - C# voor business logica
 - In-memory data opslag (staat blijft behouden tijdens sessie)
 
-## Opmerkingen
-
-- Data wordt in-memory opgeslagen en gaat verloren wanneer de applicatie wordt afgesloten
-- Om data te behouden, zou je een backend API met een database moeten toevoegen
