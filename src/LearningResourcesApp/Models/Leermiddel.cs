@@ -14,6 +14,7 @@ public class Leermiddel
     [StringLength(2000, MinimumLength = 10, ErrorMessage = "Beschrijving moet tussen 10 en 2000 tekens zijn")]
     public string Beschrijving { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Link is verplicht")]
     [Url(ErrorMessage = "Link moet een geldige URL zijn")]
     [StringLength(500, ErrorMessage = "Link mag maximaal 500 tekens zijn")]
     public string Link { get; set; } = string.Empty;

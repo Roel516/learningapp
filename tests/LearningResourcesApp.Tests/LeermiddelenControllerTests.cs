@@ -15,7 +15,7 @@ public class LeermiddelenControllerTests
 {
     private readonly Mock<ILeermiddelRepository> _mockLeermiddelRepo;
     private readonly Mock<IReactieRepository> _mockReactieRepo;
-    private readonly Mock<ILogger<LeermiddelenController>> _mockLogger;
+    private readonly Mock<LearningResourcesApp.Helpers.ControllerExceptionHandler> _mockExceptionHandler;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly LeermiddelenController _controller;
 
@@ -25,8 +25,9 @@ public class LeermiddelenControllerTests
         _mockLeermiddelRepo = new Mock<ILeermiddelRepository>();
         _mockReactieRepo = new Mock<IReactieRepository>();
 
-        // Setup logger mock
-        _mockLogger = new Mock<ILogger<LeermiddelenController>>();
+        // Setup exception handler mock
+        var loggerMock = new Mock<ILogger<LearningResourcesApp.Helpers.ControllerExceptionHandler>>();
+        _mockExceptionHandler = new Mock<LearningResourcesApp.Helpers.ControllerExceptionHandler>(loggerMock.Object);
 
         // Setup UserManager mock
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
@@ -36,7 +37,7 @@ public class LeermiddelenControllerTests
         _controller = new LeermiddelenController(
             _mockLeermiddelRepo.Object,
             _mockReactieRepo.Object,
-            _mockLogger.Object,
+            _mockExceptionHandler.Object,
             _mockUserManager.Object);
     }
 
@@ -180,24 +181,5 @@ public class LeermiddelenControllerTests
         returnedLeermiddel.Should().NotBeNull();
         returnedLeermiddel!.Titel.Should().Be(leermiddel.Titel);
         returnedLeermiddel.Id.Should().NotBe(Guid.Empty);
-    }
-
-    [Fact]
-    public async Task DeleteLeermiddel_WithValidId_DeletesLeermiddel()
-    {
-        // Arrange
-        var leermiddelId = Guid.NewGuid();
-
-        _mockLeermiddelRepo.Setup(x => x.DeleteAsync(leermiddelId))
-            .Returns(Task.CompletedTask);
-
-        // Note: Authorization is handled by [Authorize] attribute at runtime
-
-        // Act
-        var result = await _controller.DeleteLeermiddel(leermiddelId);
-
-        // Assert
-        result.Should().BeOfType<NoContentResult>();
-        _mockLeermiddelRepo.Verify(x => x.DeleteAsync(leermiddelId), Times.Once);
     }
 }

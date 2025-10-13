@@ -11,43 +11,44 @@ public class LeermiddelRepository : ILeermiddelRepository
 {
     private readonly LeermiddelContext _context;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ExceptionHandler _exceptionHandler;
     private readonly ILogger<LeermiddelRepository> _logger;
 
     public LeermiddelRepository(
         LeermiddelContext context,
         IDateTimeProvider dateTimeProvider,
+        ExceptionHandler exceptionHandler,
         ILogger<LeermiddelRepository> logger)
     {
         _context = context;
         _dateTimeProvider = dateTimeProvider;
+        _exceptionHandler = exceptionHandler;
         _logger = logger;
     }
 
     public async Task<IEnumerable<Leermiddel>> GetAllAsync()
     {
-        return await ExceptionHandler.ExecuteAsync(
+        return await _exceptionHandler.ExecuteAsync(
             async () => await _context.Leermiddelen
                 .Include(l => l.Reacties)
                 .OrderByDescending(l => l.AangemaaktOp)
                 .ToListAsync(),
-            _logger,
             "Error retrieving all leermiddelen");
     }
 
     public async Task<Leermiddel?> GetByIdAsync(Guid id)
     {
-        return await ExceptionHandler.ExecuteAsync(
+        return await _exceptionHandler.ExecuteAsync(
             async () => await _context.Leermiddelen
                 .Include(l => l.Reacties)
                 .FirstOrDefaultAsync(l => l.Id == id),
-            _logger,
             "Error retrieving leermiddel with ID {LeermiddelId}",
             id);
     }
 
     public async Task<Leermiddel> CreateAsync(Leermiddel leermiddel)
     {
-        return await ExceptionHandler.ExecuteAsync(
+        return await _exceptionHandler.ExecuteAsync(
             async () =>
             {
                 leermiddel.Id = Guid.NewGuid();
@@ -60,13 +61,12 @@ public class LeermiddelRepository : ILeermiddelRepository
                 _logger.LogInformation("Created leermiddel with ID {LeermiddelId}", leermiddel.Id);
                 return leermiddel;
             },
-            _logger,
             "Error creating leermiddel");
     }
 
     public async Task UpdateAsync(Leermiddel leermiddel)
     {
-        await ExceptionHandler.ExecuteAsync(
+        await _exceptionHandler.ExecuteAsync(
             async () =>
             {
                 try
@@ -82,14 +82,13 @@ public class LeermiddelRepository : ILeermiddelRepository
                     throw;
                 }
             },
-            _logger,
             "Error updating leermiddel with ID {LeermiddelId}",
             leermiddel.Id);
     }
 
     public async Task DeleteAsync(Guid id)
     {
-        await ExceptionHandler.ExecuteAsync(
+        await _exceptionHandler.ExecuteAsync(
             async () =>
             {
                 var leermiddel = await _context.Leermiddelen.FindAsync(id);
@@ -103,16 +102,14 @@ public class LeermiddelRepository : ILeermiddelRepository
 
                 _logger.LogInformation("Deleted leermiddel with ID {LeermiddelId}", id);
             },
-            _logger,
             "Error deleting leermiddel with ID {LeermiddelId}",
             id);
     }
 
     public async Task<bool> ExistsAsync(Guid id)
     {
-        return await ExceptionHandler.ExecuteAsync(
+        return await _exceptionHandler.ExecuteAsync(
             async () => await _context.Leermiddelen.AnyAsync(e => e.Id == id),
-            _logger,
             "Error checking if leermiddel exists with ID {LeermiddelId}",
             id);
     }

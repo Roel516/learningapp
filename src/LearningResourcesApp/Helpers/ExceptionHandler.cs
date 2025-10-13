@@ -1,10 +1,16 @@
 namespace LearningResourcesApp.Helpers;
 
-public static class ExceptionHandler
+public class ExceptionHandler
 {
-    public static async Task<T> ExecuteAsync<T>(
+    private readonly ILogger<ExceptionHandler> _logger;
+
+    public ExceptionHandler(ILogger<ExceptionHandler> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task<T> ExecuteAsync<T>(
         Func<Task<T>> operation,
-        ILogger logger,
         string errorMessage,
         params object[] logParams)
     {
@@ -14,14 +20,13 @@ public static class ExceptionHandler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, errorMessage, logParams);
+            _logger.LogError(ex, errorMessage, logParams);
             throw;
         }
     }
 
-    public static async Task ExecuteAsync(
+    public async Task ExecuteAsync(
         Func<Task> operation,
-        ILogger logger,
         string errorMessage,
         params object[] logParams)
     {
@@ -31,7 +36,7 @@ public static class ExceptionHandler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, errorMessage, logParams);
+            _logger.LogError(ex, errorMessage, logParams);
             throw;
         }
     }

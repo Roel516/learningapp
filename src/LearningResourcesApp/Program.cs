@@ -24,6 +24,10 @@ builder.Services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddScoped<ILeermiddelRepository, LeermiddelRepository>();
 builder.Services.AddScoped<IReactieRepository, ReactieRepository>();
 
+// Register Helpers
+builder.Services.AddScoped<LearningResourcesApp.Helpers.ControllerExceptionHandler>();
+builder.Services.AddScoped<LearningResourcesApp.Helpers.ExceptionHandler>();
+
 // Register Authorization Handler
 builder.Services.AddSingleton<IAuthorizationHandler, InterneMedewerkerHandler>();
 
@@ -94,13 +98,9 @@ using (var scope = app.Services.CreateScope())
 
     // Seed admin user
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    await SeedAdminUser(userManager);
-
-    // Seed test data (alleen in development)
-    if (app.Environment.IsDevelopment())
-    {
-        await SeedLeermiddelen(context, userManager);
-    }
+    await SeedAdminUser(userManager);   
+    await SeedLeermiddelen(context, userManager);
+    
 }
 
 // Configure the HTTP request pipeline.

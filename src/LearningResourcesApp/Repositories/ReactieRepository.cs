@@ -11,41 +11,42 @@ public class ReactieRepository : IReactieRepository
 {
     private readonly LeermiddelContext _context;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ExceptionHandler _exceptionHandler;
     private readonly ILogger<ReactieRepository> _logger;
 
     public ReactieRepository(
         LeermiddelContext context,
         IDateTimeProvider dateTimeProvider,
+        ExceptionHandler exceptionHandler,
         ILogger<ReactieRepository> logger)
     {
         _context = context;
         _dateTimeProvider = dateTimeProvider;
+        _exceptionHandler = exceptionHandler;
         _logger = logger;
     }
 
     public async Task<IEnumerable<Reactie>> GetPendingAsync()
     {
-        return await ExceptionHandler.ExecuteAsync(
+        return await _exceptionHandler.ExecuteAsync(
             async () => await _context.Reacties
                 .Where(r => !r.IsGoedgekeurd)
                 .OrderBy(r => r.AangemaaktOp)
                 .ToListAsync(),
-            _logger,
             "Error retrieving pending reacties");
     }
 
     public async Task<Reactie?> GetByIdAsync(Guid id)
     {
-        return await ExceptionHandler.ExecuteAsync(
+        return await _exceptionHandler.ExecuteAsync(
             async () => await _context.Reacties.FindAsync(id),
-            _logger,
             "Error retrieving reactie with ID {ReactieId}",
             id);
     }
 
     public async Task<Reactie> CreateAsync(Reactie reactie)
     {
-        return await ExceptionHandler.ExecuteAsync(
+        return await _exceptionHandler.ExecuteAsync(
             async () =>
             {
                 reactie.Id = Guid.NewGuid();
@@ -58,14 +59,13 @@ public class ReactieRepository : IReactieRepository
                     reactie.Id, reactie.LeermiddelId);
                 return reactie;
             },
-            _logger,
             "Error creating reactie for leermiddel {LeermiddelId}",
             reactie.LeermiddelId);
     }
 
     public async Task ApproveAsync(Guid id)
     {
-        await ExceptionHandler.ExecuteAsync(
+        await _exceptionHandler.ExecuteAsync(
             async () =>
             {
                 var reactie = await _context.Reacties.FindAsync(id);
@@ -79,14 +79,13 @@ public class ReactieRepository : IReactieRepository
 
                 _logger.LogInformation("Approved reactie with ID {ReactieId}", id);
             },
-            _logger,
             "Error approving reactie with ID {ReactieId}",
             id);
     }
 
     public async Task DeleteAsync(Guid id)
     {
-        await ExceptionHandler.ExecuteAsync(
+        await _exceptionHandler.ExecuteAsync(
             async () =>
             {
                 var reactie = await _context.Reacties.FindAsync(id);
@@ -100,7 +99,6 @@ public class ReactieRepository : IReactieRepository
 
                 _logger.LogInformation("Deleted reactie with ID {ReactieId}", id);
             },
-            _logger,
             "Error deleting reactie with ID {ReactieId}",
             id);
     }

@@ -1,3 +1,5 @@
+using LearningResourcesApp.Authorization;
+using LearningResourcesApp.Helpers;
 using LearningResourcesApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -254,31 +256,16 @@ public class AccountController : ControllerBase
 
     // GET: api/account/users - Lijst van alle gebruikers (alleen voor interne medewerkers)
     [HttpGet("users")]
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<ActionResult<IEnumerable<UserInfo>>> GetAllUsers()
     {
-        // Controleer of huidige gebruiker interne medewerker is
-        var currentUser = await _userManager.GetUserAsync(User);
-        if (currentUser == null)
-        {
-            return Unauthorized();
-        }
-
-        var isInterneMedewerker = await CheckIsInterneMedewerker(currentUser);
-
-        if (!isInterneMedewerker)
-        {
-            return Forbid();
-        }
-
         // Haal alle gebruikers op
         var users = _userManager.Users.ToList();
         var userInfoList = new List<UserInfo>();
 
         foreach (var user in users)
         {
-            var claims = await _userManager.GetClaimsAsync(user);
-            var isUserInterneMedewerker = claims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
+            var isUserInterneMedewerker = await CheckIsInterneMedewerker(user);
 
             userInfoList.Add(new UserInfo
             {
@@ -294,24 +281,9 @@ public class AccountController : ControllerBase
 
     // PUT: api/account/users/{userId}/toggle-internal-employee
     [HttpPut("users/{userId}/toggle-internal-employee")]
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
     public async Task<IActionResult> ToggleInternalEmployee(string userId)
     {
-        // Controleer of huidige gebruiker interne medewerker is
-        var currentUser = await _userManager.GetUserAsync(User);
-        if (currentUser == null)
-        {
-            return Unauthorized();
-        }
-
-        var currentUserClaims = await _userManager.GetClaimsAsync(currentUser);
-        var isInterneMedewerker = currentUserClaims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
-
-        if (!isInterneMedewerker)
-        {
-            return Forbid();
-        }
-
         // Haal de gebruiker op die gewijzigd moet worden
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
