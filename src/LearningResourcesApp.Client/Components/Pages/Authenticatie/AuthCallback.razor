@@ -42,13 +42,13 @@
             }
             else
             {
-                await ToonFoutEnNavigeerNaarLogin("Geen authenticatiegegevens gevonden.", 2000);
+                await ToonFoutEnNavigeerNaarLogin("Geen authenticatiegegevens gevonden.");
             }
         });
 
         if (!string.IsNullOrEmpty(foutmelding))
         {
-            await ToonFoutEnNavigeerNaarLogin(foutmelding, 3000);
+            await ToonFoutEnNavigeerNaarLogin(foutmelding);
         }
     }
    
@@ -63,7 +63,7 @@
         }
         else if (parameters.ContainsKey("error"))
         {
-            await ToonFoutEnNavigeerNaarLogin($"Fout bij inloggen: {parameters["error"]}", 3000);
+            await ToonFoutEnNavigeerNaarLogin($"Fout bij inloggen: {parameters["error"]}");
         }
     }
 
@@ -82,7 +82,7 @@
         }
         else
         {
-            await ToonFoutEnNavigeerNaarLogin($"Fout bij inloggen: {result.Foutmelding}", 3000);
+            await ToonFoutEnNavigeerNaarLogin($"Fout bij inloggen: {result.Foutmelding}");
         }
     }  
 
@@ -93,10 +93,10 @@
         Navigatie.NavigateTo("/", true);
     }
 
-    private async Task ToonFoutEnNavigeerNaarLogin(string foutmelding, int delay)
+    private async Task ToonFoutEnNavigeerNaarLogin(string foutmelding)
     {
         UpdateStatus(foutmelding);
-        await Task.Delay(delay);
+        await Task.Delay(2000);
         Navigatie.NavigateTo("/inloggen");
     }
 

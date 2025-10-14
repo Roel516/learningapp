@@ -10,29 +10,14 @@
 
 <div class="container mt-4">
     <ErrorAlert Message="@foutmelding" OnDismiss="ClearError" />
+   
+    <h3>Leermiddel Bewerken</h3>
 
-    @if (leermiddel == null && !heeftFout)
-    {
-        <div class="alert alert-warning">
-            Leermiddel aan het laden...
-        </div>
-    }
-    else if (heeftFout)
-    {
-        <div class="alert alert-danger">
-            Leermiddel niet gevonden of er is een fout opgetreden.
-        </div>
-        <button class="btn btn-secondary" @onclick="@(() => Navigatie.NavigateTo("/"))">Terug naar Lijst</button>
-    }
-    else
-    {
-        <h3>Leermiddel Bewerken</h3>
-
-        <LeermiddelForm Leermiddel="@leermiddel"
-                        SubmitButtonText="Wijzigingen Opslaan"
-                        OnValidSubmit="@VerwerkWijziging"
-                        OnCancelled="@Annuleren" />
-    }
+    <LeermiddelForm Leermiddel="@leermiddel"
+                    SubmitButtonText="Wijzigingen Opslaan"
+                    OnValidSubmit="@VerwerkWijziging"
+                    OnCancelled="@Annuleren" />
+    
 </div>
 
 @code {
@@ -47,17 +32,8 @@
         await ExecuteAsync(async () =>
         {
             leermiddel = await LeermiddelService.HaalLeermiddelOpMetId(Id);
-
-            if (leermiddel == null)
-            {
-                heeftFout = true;
-            }
-        }, "Er is een fout opgetreden bij het laden van het leermiddel");
-
-        if (!string.IsNullOrEmpty(foutmelding))
-        {
-            heeftFout = true;
-        }
+            
+        }, "Er is een fout opgetreden bij het laden van het leermiddel");       
     }
 
     private async Task VerwerkWijziging(Leermiddel gewijzigdLeermiddel)

@@ -28,7 +28,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         // Act
         var cut = RenderComponent<NavMenu>();
@@ -57,7 +56,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         // Act
         var cut = RenderComponent<NavMenu>();
@@ -85,7 +83,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         // Act
         var cut = RenderComponent<NavMenu>();
@@ -122,7 +119,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         // Act
         var cut = RenderComponent<NavMenu>();
@@ -152,7 +148,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         // Act
         var cut = RenderComponent<NavMenu>();
@@ -176,7 +171,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         // Act
         var cut = RenderComponent<NavMenu>();
@@ -196,7 +190,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         var cut = RenderComponent<NavMenu>();
 
@@ -233,7 +226,6 @@ public class NavMenuComponentTests : TestContext
 
         Services.AddSingleton<IAutenticatieService>(_ => authService);
         Services.AddSingleton(new HttpClient());
-        this.AddTestAuthorization();
 
         // Act
         var cut = RenderComponent<NavMenu>();
