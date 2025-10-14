@@ -228,22 +228,10 @@ public class LeermiddelenController : ControllerBase
                 return NotFound();
             }
 
-            reactie.LeermiddelId = id;
-
-            // Controleer of gebruiker interne medewerker is
-            var isInterneMedewerker = false;
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                var user = await _userManager.GetUserAsync(User);
-                if (user != null)
-                {
-                    var claims = await _userManager.GetClaimsAsync(user);
-                    isInterneMedewerker = claims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
-                }
-            }
+            reactie.LeermiddelId = id;           
 
             // Reacties van interne medewerkers worden automatisch goedgekeurd
-            reactie.IsGoedgekeurd = isInterneMedewerker;
+            reactie.IsGoedgekeurd = await IsInterneMedewerker();
 
             var createdReactie = await _reactieRepository.CreateAsync(reactie);
 

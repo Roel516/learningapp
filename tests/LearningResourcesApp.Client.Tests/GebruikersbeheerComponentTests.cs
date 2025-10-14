@@ -37,7 +37,7 @@ public class GebruikersbeheerComponentTests : TestContext
     }
 
     [Fact]
-    public void Gebruikersbeheer_ShowsAccessDenied_WhenGoogleUserLoggedIn()
+    public void Gebruikersbeheer_ShowsAccessDenied_WhenNotInterneMedewerkerLoggedIn()
     {
         // Arrange - Google user without InterneMedewerker status
         var googleUser = new Gebruiker

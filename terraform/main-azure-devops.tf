@@ -183,21 +183,6 @@ resource "azurerm_linux_web_app" "main" {
   }
 }
 
-# Application Insights (optional but recommended)
-resource "azurerm_application_insights" "main" {
-  count               = var.enable_app_insights ? 1 : 0
-  name                = "${var.project_name}-appinsights"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  application_type    = "web"
-  workspace_id        = "/subscriptions/2fb2baa4-e931-4c9d-b63a-4f4c56f37358/resourceGroups/ai_learningresources-roel-appinsights_11b950cc-4419-4c56-94dd-8f21aaada60d_managed/providers/Microsoft.OperationalInsights/workspaces/managed-learningresources-roel-appinsights-ws"
-
-  tags = {
-    Environment = var.environment
-    Project     = var.project_name
-  }
-}
-
 # Azure DevOps Project
 resource "azuredevops_project" "main" {
   name               = var.project_name

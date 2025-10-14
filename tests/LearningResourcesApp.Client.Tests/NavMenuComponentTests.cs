@@ -68,7 +68,7 @@ public class NavMenuComponentTests : TestContext
     }
 
     [Fact]
-    public void NavMenu_HidesGebruikersbeheerLink_WhenGoogleUserLoggedIn()
+    public void NavMenu_HidesGebruikersbeheerLink_WhenNotInterneMedewerkerLoggedIn()
     {
         // Arrange - Google user without InterneMedewerker status
         var googleUser = new Gebruiker
@@ -77,7 +77,7 @@ public class NavMenuComponentTests : TestContext
             Naam = "Google User",
             Email = "googleuser@gmail.com",
             IsIngelogd = true,
-            IsInterneMedewerker = false  // Google users don't have internal employee status
+            IsInterneMedewerker = false
         };
 
         var authService = CreateAuthService();
