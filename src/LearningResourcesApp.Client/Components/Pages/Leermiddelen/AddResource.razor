@@ -13,13 +13,7 @@
 <div class="container mt-4">
     <h3>Nieuw Leermiddel Toevoegen</h3>
 
-    @if (!string.IsNullOrEmpty(foutmelding))
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @foutmelding
-            <button type="button" class="btn-close" @onclick="@(() => foutmelding = string.Empty)"></button>
-        </div>
-    }
+    <ErrorAlert Message="@foutmelding" OnDismiss="ClearError" />
 
     @if (!AutenticatieService.IsIngelogd)
     {

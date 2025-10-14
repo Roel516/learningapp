@@ -8,10 +8,10 @@
     }
 
     <div class="mb-3">
-        <label for="titel" class="form-label">Titel</label>
+        <label for="titel" class="form-label fw-bold">Titel</label>
         @if (ReadOnly)
         {
-            <input id="titel" type="text" class="form-control" value="@Leermiddel.Titel" readonly />
+            <div class="form-control-plaintext bg-light border rounded p-2">@Leermiddel.Titel</div>
         }
         else
         {
@@ -20,10 +20,10 @@
     </div>
 
     <div class="mb-3">
-        <label for="beschrijving" class="form-label">Beschrijving</label>
+        <label for="beschrijving" class="form-label fw-bold">Beschrijving</label>
         @if (ReadOnly)
         {
-            <textarea id="beschrijving" class="form-control" rows="4" readonly>@Leermiddel.Beschrijving</textarea>
+            <div class="form-control-plaintext bg-light border rounded p-2" style="white-space: pre-wrap;">@Leermiddel.Beschrijving</div>
         }
         else
         {
@@ -32,12 +32,14 @@
     </div>
 
     <div class="mb-3">
-        <label for="link" class="form-label">Link (URL)</label>
+        <label for="link" class="form-label fw-bold">Link (URL)</label>
         @if (ReadOnly)
         {
-            <div class="input-group">
-                <input id="link" type="text" class="form-control" value="@Leermiddel.Link" readonly />
-                <a href="@Leermiddel.Link" target="_blank" class="btn btn-outline-secondary">
+            <div class="d-flex gap-2 align-items-center">
+                <div class="form-control-plaintext bg-light border rounded p-2 flex-grow-1 text-break">
+                    @Leermiddel.Link
+                </div>
+                <a href="@Leermiddel.Link" target="_blank" class="btn btn-primary">
                     <i class="bi bi-box-arrow-up-right"></i> Open
                 </a>
             </div>

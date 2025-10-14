@@ -22,21 +22,8 @@
         }
     </div>
 
-    @if (!string.IsNullOrEmpty(foutmelding))
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @foutmelding
-            <button type="button" class="btn-close" @onclick="@(() => foutmelding = string.Empty)"></button>
-        </div>
-    }
-
-    @if (!string.IsNullOrEmpty(succesmelding))
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @succesmelding
-            <button type="button" class="btn-close" @onclick="@(() => succesmelding = string.Empty)"></button>
-        </div>
-    }
+    <ErrorAlert Message="@foutmelding" OnDismiss="ClearError" />
+    <SuccessAlert Message="@succesmelding" OnDismiss="ClearSuccess" />
 
     @if (isBezig && !leermiddelen.Any())
     {

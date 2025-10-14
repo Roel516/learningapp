@@ -15,19 +15,8 @@
                 <div class="card-body p-5">
                     <h3 class="mb-4 text-center">Account Aanmaken</h3>
 
-                    @if (!string.IsNullOrEmpty(foutmelding))
-                    {
-                        <div class="alert alert-danger" role="alert">
-                            @foutmelding
-                        </div>
-                    }
-
-                    @if (!string.IsNullOrEmpty(succesmelding))
-                    {
-                        <div class="alert alert-success" role="alert">
-                            @succesmelding
-                        </div>
-                    }
+                    <ErrorAlert Message="@foutmelding" OnDismiss="ClearError" />
+                    <SuccessAlert Message="@succesmelding" OnDismiss="ClearSuccess" />
 
                     <EditForm Model="@registerRequest" OnValidSubmit="@HandleRegistreren">
                         <DataAnnotationsValidator />

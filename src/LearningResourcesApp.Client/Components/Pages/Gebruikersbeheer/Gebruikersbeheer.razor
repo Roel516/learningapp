@@ -1,6 +1,8 @@
 @page "/gebruikersbeheer"
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Models.Authenticatie
+@using LearningResourcesApp.Client.Components.Base
+@inherits BaseComponentWithErrorHandling
 @inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
 @inject HttpClient Http
@@ -26,21 +28,8 @@
     }
     else
     {
-        @if (!string.IsNullOrEmpty(successBericht))
-        {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                @successBericht
-                <button type="button" class="btn-close" @onclick="@(() => successBericht = string.Empty)"></button>
-            </div>
-        }
-
-        @if (!string.IsNullOrEmpty(foutmelding))
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                @foutmelding
-                <button type="button" class="btn-close" @onclick="@(() => foutmelding = string.Empty)"></button>
-            </div>
-        }
+        <SuccessAlert Message="@succesmelding" OnDismiss="ClearSuccess" />
+        <ErrorAlert Message="@foutmelding" OnDismiss="ClearError" />
 
         <div class="card mb-4">
             <div class="card-header">
@@ -159,9 +148,6 @@
 @code {
     private RegisterRequest nieuweGebruiker = new();
     private List<Gebruiker> gebruikers = new();
-    private string foutmelding = string.Empty;
-    private string successBericht = string.Empty;
-    private bool isBezig = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -195,18 +181,14 @@
             return;
         }
 
-        try
+        await ExecuteAsync(async () =>
         {
             var response = await Http.GetAsync("api/account/users");
             if (response.IsSuccessStatusCode)
             {
                 gebruikers = await response.Content.ReadFromJsonAsync<List<Gebruiker>>() ?? new();
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij laden gebruikers: {ex.Message}");
-        }
+        }, "Fout bij laden gebruikers");
     }
 
     private async Task ToggleInterneMedewerker(Gebruiker gebruiker)
@@ -218,12 +200,8 @@
             return;
         }
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
-            foutmelding = string.Empty;
-            successBericht = string.Empty;
-            isBezig = true;
-
             var response = await Http.PutAsync($"api/account/users/{gebruiker.Id}/toggle-internal-employee", null);
 
             if (response.IsSuccessStatusCode)
@@ -231,7 +209,7 @@
                 // Update de lokale status
                 gebruiker.IsInterneMedewerker = !gebruiker.IsInterneMedewerker;
 
-                successBericht = gebruiker.IsInterneMedewerker
+                succesmelding = gebruiker.IsInterneMedewerker
                     ? $"'{gebruiker.Naam}' is nu een interne medewerker."
                     : $"Interne medewerker status verwijderd voor '{gebruiker.Naam}'.";
 
@@ -241,15 +219,7 @@
             {
                 foutmelding = "Fout bij wijzigen gebruikersstatus";
             }
-        }
-        catch (Exception ex)
-        {
-            foutmelding = $"Er is een fout opgetreden: {ex.Message}";
-        }
-        finally
-        {
-            isBezig = false;
-        }
+        }, "Er is een fout opgetreden bij wijzigen gebruikersstatus");
     }
 
     private async Task VoegGebruikerToe()
@@ -261,17 +231,13 @@
             return;
         }
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
-            foutmelding = string.Empty;
-            successBericht = string.Empty;
-            isBezig = true;
-
             var result = await AutenticatieService.Registreren(nieuweGebruiker);
 
             if (result.Succes)
             {
-                successBericht = $"Gebruiker '{nieuweGebruiker.Naam}' is succesvol toegevoegd!";
+                succesmelding = $"Gebruiker '{nieuweGebruiker.Naam}' is succesvol toegevoegd!";
                 nieuweGebruiker = new RegisterRequest();
 
                 // Herlaad de gebruikerslijst
@@ -281,14 +247,6 @@
             {
                 foutmelding = result.Foutmelding ?? "Fout bij toevoegen gebruiker";
             }
-        }
-        catch (Exception ex)
-        {
-            foutmelding = $"Er is een fout opgetreden: {ex.Message}";
-        }
-        finally
-        {
-            isBezig = false;
-        }
+        }, "Er is een fout opgetreden bij toevoegen gebruiker");
     }
 }
