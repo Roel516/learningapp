@@ -1,6 +1,8 @@
 @page "/add-resource"
 @using LearningResourcesApp.Client.Models.Leermiddelen
 @using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Components.Base
+@inherits BaseComponentWithErrorHandling
 @inject ILeermiddelService LeermiddelService
 @inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
@@ -10,6 +12,14 @@
 
 <div class="container mt-4">
     <h3>Nieuw Leermiddel Toevoegen</h3>
+
+    @if (!string.IsNullOrEmpty(foutmelding))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @foutmelding
+            <button type="button" class="btn-close" @onclick="@(() => foutmelding = string.Empty)"></button>
+        </div>
+    }
 
     @if (!AutenticatieService.IsIngelogd)
     {
@@ -59,11 +69,14 @@
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(leermiddel.Titel))
+        await ExecuteAsync(async () =>
         {
-            await LeermiddelService.VoegLeermiddelToe(leermiddel);
-            Navigatie.NavigateTo("/");
-        }
+            if (!string.IsNullOrWhiteSpace(leermiddel.Titel))
+            {
+                await LeermiddelService.VoegLeermiddelToe(leermiddel);
+                Navigatie.NavigateTo("/");
+            }
+        }, "Er is een fout opgetreden bij het toevoegen van het leermiddel");
     }
 
     private void Annuleren()

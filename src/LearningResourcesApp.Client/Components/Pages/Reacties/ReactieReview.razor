@@ -1,6 +1,8 @@
 @page "/reactie-review"
 @using LearningResourcesApp.Client.Models.Leermiddelen
 @using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Components.Base
+@inherits BaseComponentWithErrorHandling
 @inject IAutenticatieService AutenticatieService
 @inject HttpClient Http
 @inject NavigationManager Navigatie
@@ -72,7 +74,6 @@
 
 @code {
     private List<Reactie> pendingReacties = new();
-    private bool isBezig = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,28 +98,19 @@
             return;
         }
 
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
-            isBezig = true;
             var response = await Http.GetAsync("api/leermiddelen/reacties/pending");
             if (response.IsSuccessStatusCode)
             {
                 pendingReacties = await response.Content.ReadFromJsonAsync<List<Reactie>>() ?? new();
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij laden pending reacties: {ex.Message}");
-        }
-        finally
-        {
-            isBezig = false;
-        }
+        }, "Fout bij laden pending reacties");
     }
 
     private async Task KeurGoed(Guid reactieId)
     {
-        try
+        await ExecuteAsync(async () =>
         {
             var response = await Http.PutAsync($"api/leermiddelen/reacties/{reactieId}/approve", null);
             if (response.IsSuccessStatusCode)
@@ -126,16 +118,12 @@
                 pendingReacties.RemoveAll(r => r.Id == reactieId);
                 StateHasChanged();
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij goedkeuren reactie: {ex.Message}");
-        }
+        }, "Fout bij goedkeuren reactie");
     }
 
     private async Task Verwijder(Guid reactieId)
     {
-        try
+        await ExecuteAsync(async () =>
         {
             var response = await Http.DeleteAsync($"api/leermiddelen/reacties/{reactieId}");
             if (response.IsSuccessStatusCode)
@@ -143,10 +131,6 @@
                 pendingReacties.RemoveAll(r => r.Id == reactieId);
                 StateHasChanged();
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij verwijderen reactie: {ex.Message}");
-        }
+        }, "Fout bij verwijderen reactie");
     }
 }

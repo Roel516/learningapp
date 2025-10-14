@@ -1,6 +1,8 @@
 @page "/registreren"
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Models.Authenticatie
+@using LearningResourcesApp.Client.Components.Base
+@inherits BaseComponentWithErrorHandling
 @inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
 
@@ -81,27 +83,19 @@
 @code {
     private RegisterRequest registerRequest = new();
     private string wachtwoordBevestiging = string.Empty;
-    private string foutmelding = string.Empty;
-    private string succesmelding = string.Empty;
-    private bool isBezig = false;
 
     private async Task HandleRegistreren()
     {
-        try
+        // Valideer registratie
+        var validatieResultaat = ValideerRegistratie();
+        if (!validatieResultaat.IsGeldig)
         {
-            foutmelding = string.Empty;
-            succesmelding = string.Empty;
+            foutmelding = validatieResultaat.Foutmelding;
+            return;
+        }
 
-            // Valideer registratie
-            var validatieResultaat = ValideerRegistratie();
-            if (!validatieResultaat.IsGeldig)
-            {
-                foutmelding = validatieResultaat.Foutmelding;
-                return;
-            }
-
-            isBezig = true;
-
+        await ExecuteWithLoadingAsync(async () =>
+        {
             var result = await AutenticatieService.Registreren(registerRequest);
 
             if (result.Succes)
@@ -114,15 +108,7 @@
             {
                 foutmelding = result.Foutmelding ?? "Registratie mislukt";
             }
-        }
-        catch (Exception ex)
-        {
-            foutmelding = $"Er is een fout opgetreden: {ex.Message}";
-        }
-        finally
-        {
-            isBezig = false;
-        }
+        }, "Er is een fout opgetreden bij het registreren");
     }
 
     private ValidationResult ValideerRegistratie()

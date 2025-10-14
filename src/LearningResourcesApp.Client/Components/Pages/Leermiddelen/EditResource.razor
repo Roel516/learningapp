@@ -1,17 +1,34 @@
 @page "/edit-resource/{id:guid}"
 @using LearningResourcesApp.Client.Models.Leermiddelen
 @using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Components.Base
+@inherits BaseComponentWithErrorHandling
 @inject ILeermiddelService LeermiddelService
 @inject NavigationManager Navigatie
 
 <PageTitle>Leermiddel Bewerken</PageTitle>
 
 <div class="container mt-4">
-    @if (leermiddel == null)
+    @if (!string.IsNullOrEmpty(foutmelding))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @foutmelding
+            <button type="button" class="btn-close" @onclick="@(() => foutmelding = string.Empty)"></button>
+        </div>
+    }
+
+    @if (leermiddel == null && !heeftFout)
     {
         <div class="alert alert-warning">
             Leermiddel aan het laden...
         </div>
+    }
+    else if (heeftFout)
+    {
+        <div class="alert alert-danger">
+            Leermiddel niet gevonden of er is een fout opgetreden.
+        </div>
+        <button class="btn btn-secondary" @onclick="@(() => Navigatie.NavigateTo("/"))">Terug naar Lijst</button>
     }
     else
     {
@@ -29,27 +46,43 @@
     public Guid Id { get; set; }
 
     private Leermiddel? leermiddel;
+    private bool heeftFout = false;
 
     protected override async Task OnInitializedAsync()
     {
-        leermiddel = await LeermiddelService.HaalLeermiddelOpMetId(Id);
-
-        if (leermiddel == null)
+        await ExecuteAsync(async () =>
         {
-            Navigatie.NavigateTo("/");
+            leermiddel = await LeermiddelService.HaalLeermiddelOpMetId(Id);
+
+            if (leermiddel == null)
+            {
+                heeftFout = true;
+            }
+        }, "Er is een fout opgetreden bij het laden van het leermiddel");
+
+        if (!string.IsNullOrEmpty(foutmelding))
+        {
+            heeftFout = true;
         }
     }
 
     private async Task VerwerkWijziging(Leermiddel gewijzigdLeermiddel)
     {
-        if (!string.IsNullOrWhiteSpace(gewijzigdLeermiddel.Titel))
+        await ExecuteAsync(async () =>
         {
-            var succes = await LeermiddelService.WijzigLeermiddel(gewijzigdLeermiddel);
-            if (succes)
+            if (!string.IsNullOrWhiteSpace(gewijzigdLeermiddel.Titel))
             {
-                Navigatie.NavigateTo($"/resource/{Id}");
+                var succes = await LeermiddelService.WijzigLeermiddel(gewijzigdLeermiddel);
+                if (succes)
+                {
+                    Navigatie.NavigateTo($"/resource/{Id}");
+                }
+                else
+                {
+                    foutmelding = "Het wijzigen van het leermiddel is mislukt.";
+                }
             }
-        }
+        }, "Er is een fout opgetreden bij het wijzigen van het leermiddel");
     }
 
     private void Annuleren()

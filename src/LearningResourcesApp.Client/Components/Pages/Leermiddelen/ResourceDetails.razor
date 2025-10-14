@@ -1,6 +1,8 @@
 @page "/resource/{id:guid}"
 @using LearningResourcesApp.Client.Models.Leermiddelen
 @using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Components.Base
+@inherits BaseComponentWithErrorHandling
 @inject ILeermiddelService LeermiddelService
 @inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
@@ -9,12 +11,36 @@
 <PageTitle>Leermiddel Details</PageTitle>
 
 <div class="container mt-4">
-    @if (leermiddel == null)
+    @if (!string.IsNullOrEmpty(foutmelding))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @foutmelding
+            <button type="button" class="btn-close" @onclick="@(() => foutmelding = string.Empty)"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(succesmelding))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @succesmelding
+            <button type="button" class="btn-close" @onclick="@(() => succesmelding = string.Empty)"></button>
+        </div>
+    }
+
+    @if (leermiddel == null && !isBezig)
     {
         <div class="alert alert-warning">
             Leermiddel niet gevonden.
         </div>
         <button class="btn btn-secondary" @onclick="NavigeerTerug">Terug naar Lijst</button>
+    }
+    else if (isBezig)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+        </div>
     }
     else
     {
@@ -132,19 +158,27 @@
 
     private async Task LaadLeermiddel()
     {
-        leermiddel = await LeermiddelService.HaalLeermiddelOpMetId(Id);
+        await ExecuteWithLoadingAsync(async () =>
+        {
+            leermiddel = await LeermiddelService.HaalLeermiddelOpMetId(Id);
+        }, "Er is een fout opgetreden bij het laden van het leermiddel");
     }
 
     private async Task VoegReactieToe()
     {
         if (AutenticatieService.IsIngelogd && AutenticatieService.HuidigeGebruiker != null && !string.IsNullOrWhiteSpace(nieuweReactie.Tekst))
         {
-            nieuweReactie.GebruikerId = AutenticatieService.HuidigeGebruiker.Id;
-            nieuweReactie.Gebruikersnaam = AutenticatieService.HuidigeGebruiker.Naam;
+            await ExecuteWithSuccessAsync(async () =>
+            {
+                nieuweReactie.GebruikerId = AutenticatieService.HuidigeGebruiker.Id;
+                nieuweReactie.Gebruikersnaam = AutenticatieService.HuidigeGebruiker.Naam;
 
-            await LeermiddelService.VoegReactieToe(Id, nieuweReactie);
-            nieuweReactie = new Reactie();
-            await LaadLeermiddel();
+                await LeermiddelService.VoegReactieToe(Id, nieuweReactie);
+                nieuweReactie = new Reactie();
+                await LaadLeermiddel();
+            },
+            "Je reactie is toegevoegd en wordt beoordeeld door een medewerker.",
+            "Er is een fout opgetreden bij het toevoegen van de reactie");
         }
     }
 

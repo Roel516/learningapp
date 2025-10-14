@@ -1,7 +1,9 @@
 @page "/inloggen"
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Models.Authenticatie
+@using LearningResourcesApp.Client.Components.Base
 @using System.Text.Json
+@inherits BaseComponentWithErrorHandling
 @inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
 @inject HttpClient Http
@@ -86,14 +88,12 @@
 
 @code {
     private LoginRequest loginRequest = new();
-    private string foutmelding = string.Empty;
-    private bool isBezig = false;
     private string? googleClientId;
     private string? redirectUri;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        await ExecuteAsync(async () =>
         {
             // Laad configuratie
             var config = await Http.GetFromJsonAsync<JsonElement>("appsettings.json");
@@ -112,20 +112,13 @@
                     googleClientId = null;
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij laden configuratie: {ex.Message}");
-        }
+        }, "Fout bij laden configuratie");
     }
 
     private async Task HandleInloggen()
     {
-        try
+        await ExecuteWithLoadingAsync(async () =>
         {
-            foutmelding = string.Empty;
-            isBezig = true;
-
             var result = await AutenticatieService.Inloggen(loginRequest);
 
             if (result.Succes)
@@ -136,27 +129,19 @@
             {
                 foutmelding = result.Foutmelding ?? "Inloggen mislukt";
             }
-        }
-        catch (Exception ex)
-        {
-            foutmelding = $"Er is een fout opgetreden: {ex.Message}";
-        }
-        finally
-        {
-            isBezig = false;
-        }
+        }, "Er is een fout opgetreden bij het inloggen");
     }
 
     private void LoginMetGoogleOAuth()
     {
+        if (string.IsNullOrEmpty(googleClientId))
+        {
+            foutmelding = "Google Client ID is niet geconfigureerd.";
+            return;
+        }
+
         try
         {
-            if (string.IsNullOrEmpty(googleClientId))
-            {
-                foutmelding = "Google Client ID is niet geconfigureerd.";
-                return;
-            }
-
             // Genereer OAuth URL en navigeer
             var authUrl = AutenticatieService.GenereerGoogleLoginUrl(googleClientId, redirectUri ?? "");
             Navigatie.NavigateTo(authUrl, true);

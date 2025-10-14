@@ -1,5 +1,7 @@
 @page "/authentication/login-callback"
 @using LearningResourcesApp.Client.Services
+@using LearningResourcesApp.Client.Components.Base
+@inherits BaseComponentWithErrorHandling
 @inject IAutenticatieService AutenticatieService
 @inject NavigationManager Navigatie
 @inject IJSRuntime JSRuntime
@@ -30,7 +32,7 @@
 
     private async Task VerwerkAuthenticatieCallback()
     {
-        try
+        await ExecuteAsync(async () =>
         {
             var fragment = await JSRuntime.InvokeAsync<string>("eval", "window.location.hash");
 
@@ -42,10 +44,11 @@
             {
                 await ToonFoutEnNavigeerNaarLogin("Geen authenticatiegegevens gevonden.", 2000);
             }
-        }
-        catch (Exception ex)
+        });
+
+        if (!string.IsNullOrEmpty(foutmelding))
         {
-            await ToonFoutEnNavigeerNaarLogin($"Er is een fout opgetreden: {ex.Message}", 3000);
+            await ToonFoutEnNavigeerNaarLogin(foutmelding, 3000);
         }
     }
    
