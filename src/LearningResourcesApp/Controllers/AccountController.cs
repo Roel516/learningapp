@@ -1,3 +1,4 @@
+using Azure.Core;
 using LearningResourcesApp.Authorization;
 using LearningResourcesApp.Helpers;
 using LearningResourcesApp.Models;
@@ -46,7 +47,7 @@ public class AccountController : ControllerBase
             });
         }
 
-        var user = await MaakNieuweGebruiker(request);
+        var user = await MaakNieuweGebruiker(request.Email, request.Email, request.Naam);
         if (user == null)
         {
             return BadRequest(new AuthResponse
@@ -59,21 +60,7 @@ public class AccountController : ControllerBase
         await _signInManager.SignInAsync(user, isPersistent: true);
 
         return Ok(MaakAuthResponse(user, isInterneMedewerker: false));
-    }
-
-    private async Task<ApplicationUser?> MaakNieuweGebruiker(RegisterRequest request)
-    {
-        var user = new ApplicationUser
-        {
-            UserName = request.Email,
-            Email = request.Email,
-            Naam = request.Naam,
-            EmailConfirmed = true
-        };
-
-        var result = await _userManager.CreateAsync(user, request.Wachtwoord);
-        return result.Succeeded ? user : null;
-    }
+    }    
 
     private AuthResponse MaakAuthResponse(ApplicationUser user, bool isInterneMedewerker)
     {
@@ -224,20 +211,34 @@ public class AccountController : ControllerBase
             return user;
         }
 
-        // Maak nieuwe gebruiker aan voor externe login
-        var nieuweGebruiker = new ApplicationUser
-        {
-            UserName = request.Email,
-            Email = request.Email,
-            Naam = request.Naam,
-            EmailConfirmed = true // Google heeft email al geverifieerd
-        };
-
-        var createResult = await _userManager.CreateAsync(nieuweGebruiker);
-        return createResult.Succeeded ? nieuweGebruiker : null;
+        return await MaakNieuweGebruiker(request.Email, request.Email, request.Naam);
     }
 
-    private async Task<bool> KoppelExterneLogin(ApplicationUser user, ExternalLoginRequest request)
+	private async Task<ApplicationUser?> MaakNieuweGebruiker(string userName, string  email, string naam, string wachtwoord = "")
+	{
+		var user = new ApplicationUser
+		{
+			UserName = userName,
+			Email = email,
+			Naam = naam,
+			EmailConfirmed = true
+		};
+
+        var result = null as IdentityResult;
+
+		if (wachtwoord == "")
+        {
+			result = await _userManager.CreateAsync(user);
+		}
+        else
+        {
+			result = await _userManager.CreateAsync(user, wachtwoord);
+		}
+            
+		return result.Succeeded ? user : null;
+	}
+
+	private async Task<bool> KoppelExterneLogin(ApplicationUser user, ExternalLoginRequest request)
     {
         var logins = await _userManager.GetLoginsAsync(user);
         var bestaandeLogin = logins.FirstOrDefault(l =>
