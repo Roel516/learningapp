@@ -10,32 +10,13 @@ Een Blazor WebAssembly applicatie voor het beheren en organiseren van leermiddel
 - **Reactiesysteem**: Voeg reacties toe en bekijk reacties op elk leermiddel
 - **Responsive Design**: Gebouwd met Bootstrap voor mobiel-vriendelijke ervaring
 
-## Projectstructuur
-
-```
-LearningResourcesApp/
-├── Models/
-│   ├── LearningResource.cs    # Hoofd leermiddel model
-│   └── Comment.cs              # Reactie model
-├── Services/
-│   └── LearningResourceService.cs  # Service voor het beheren van leermiddelen
-├── Components/Pages/
-│   ├── AddResource.razor       # Formulier om nieuwe leermiddelen toe te voegen
-│   ├── ResourceList.razor      # Lijstweergave van alle leermiddelen
-│   └── ResourceDetails.razor   # Detailweergave met reacties
-├── Pages/
-│   └── Home.razor              # Landingspagina
-└── Layout/
-    └── NavMenu.razor           # Navigatiemenu
-```
-
 ## De Applicatie Uitvoeren
 
 1. Zorg ervoor dat je .NET 8.0 SDK geïnstalleerd hebt
 2. Navigeer naar de projectdirectory
 3. Start de applicatie:
    ```bash
-   dotnet run
+   dotnet run --project src/LearningResourcesApp/LearningResourcesApp.csproj
    ```
 4. Open je browser en navigeer naar de URL die in de console wordt weergegeven (meestal https://localhost:5001)
 
