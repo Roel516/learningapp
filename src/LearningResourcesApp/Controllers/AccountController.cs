@@ -219,7 +219,7 @@ public class AccountController : ControllerBase
 		var user = new IdentityUser
 		{
 			UserName = userName,
-			Email = email,			
+			Email = email,
 			EmailConfirmed = true
 		};
 
@@ -233,7 +233,12 @@ public class AccountController : ControllerBase
         {
 			result = await _userManager.CreateAsync(user, wachtwoord);
 		}
-            
+
+		if (!result.Succeeded)
+		{
+			Console.WriteLine($"Failed to create user {userName}: {string.Join(", ", result.Errors.Select(e => $"{e.Code}: {e.Description}"))}");
+		}
+
 		return result.Succeeded ? user : null;
 	}
 

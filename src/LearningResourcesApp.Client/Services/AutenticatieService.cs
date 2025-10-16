@@ -128,6 +128,7 @@ public class AutenticatieService : IAutenticatieService
     {
         var scope = Uri.EscapeDataString("openid profile email");
         var responseType = "id_token token";
+        var responseMode = "fragment";
         var nonce = Guid.NewGuid().ToString();
 
         // Sla nonce op voor verificatie
@@ -137,6 +138,7 @@ public class AutenticatieService : IAutenticatieService
                $"client_id={clientId}&" +
                $"redirect_uri={Uri.EscapeDataString(redirectUri)}&" +
                $"response_type={responseType}&" +
+               $"response_mode={responseMode}&" +
                $"scope={scope}&" +
                $"nonce={nonce}";
     }

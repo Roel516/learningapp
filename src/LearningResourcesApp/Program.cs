@@ -60,6 +60,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 
     // User settings
     options.User.RequireUniqueEmail = true;
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+ ";
 })
 .AddEntityFrameworkStores<LeermiddelContext>();
 
