@@ -56,8 +56,9 @@ public class AutenticatieService : IAutenticatieService
         return await VoerAuthenticatieActieUit(
             async () => await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/register", request),
             "Registratie mislukt",
-            "registreren"
-        );
+            "registreren",
+            request.IsSelfRegistration
+		);
     }
 
     // Login met email/wachtwoord (Identity)
@@ -66,14 +67,16 @@ public class AutenticatieService : IAutenticatieService
         return await VoerAuthenticatieActieUit(
             async () => await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/login", request),
             "Login mislukt",
-            "inloggen"
+            "inloggen",
+            true
         );
     }
 
     private async Task<AuthResult> VoerAuthenticatieActieUit(
         Func<Task<HttpResponseMessage>> apiCall,
         string defaultFoutmelding,
-        string actieBeschrijving)
+        string actieBeschrijving,
+        bool loggingIn)
     {
         try
         {
@@ -82,7 +85,10 @@ public class AutenticatieService : IAutenticatieService
 
             if (result?.Succes == true && result.Gebruiker != null)
             {
-                ZetHuidigeGebruiker(result.Gebruiker);
+                if (loggingIn)
+                { 
+                    ZetHuidigeGebruiker(result.Gebruiker); 
+                }
                 return AuthResult.Success();
             }
 

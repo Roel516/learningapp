@@ -100,8 +100,7 @@ using (var scope = app.Services.CreateScope())
     // Seed admin user
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     await SeedAdminUser(userManager);   
-    await SeedLeermiddelen(context, userManager);
-    
+    await SeedLeermiddelen(context, userManager);    
 }
 
 // Configure the HTTP request pipeline.

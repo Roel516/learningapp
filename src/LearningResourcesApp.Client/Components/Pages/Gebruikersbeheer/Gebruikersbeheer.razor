@@ -1,9 +1,6 @@
 @page "/gebruikersbeheer"
 @using LearningResourcesApp.Client.Components.Base
 @using LearningResourcesApp.Client.Services
-@using LearningResourcesApp.Models
-@using LearningResourcesApp.Models.Auth
-s
 @using LearningResourcesApp.Models.Auth
 @inherits BaseComponentWithErrorHandling
 @inject IAutenticatieService AutenticatieService
@@ -152,6 +149,11 @@ s
     private RegisterRequest nieuweGebruiker = new();
     private List<Gebruiker> gebruikers = new();
 
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (!AutenticatieService.IsIngelogd)
@@ -172,11 +174,7 @@ s
         InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
-    {
-        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
-    }
-
+    
     private async Task LaadGebruikers()
     {
         if (AutenticatieService.HuidigeGebruiker?.IsInterneMedewerker != true)
@@ -236,6 +234,7 @@ s
 
         await ExecuteWithLoadingAsync(async () =>
         {
+            nieuweGebruiker.IsSelfRegistration = false;
             var result = await AutenticatieService.Registreren(nieuweGebruiker);
 
             if (result.Succes)

@@ -82,39 +82,7 @@ public class LeermiddelenController : ControllerBase
         "Error retrieving leermiddel {LeermiddelId}",
         "Er is een fout opgetreden bij het ophalen van het leermiddel",
         id);
-    }
-
-    private async Task<Leermiddel> FilterReactiesVoorInterneGebruiker(Leermiddel leermiddel)
-    {
-        // Controleer of gebruiker interne medewerker is
-        var isInterneMedewerker = await IsInterneMedewerker();
-
-        // Filter reacties voor niet-interne gebruikers
-        if (!isInterneMedewerker)
-        {
-            var currentUserId = await GetCurrentUserid(); 
-
-            // Toon goedgekeurde reacties + eigen niet-goedgekeurde reacties
-            leermiddel.Reacties = leermiddel.Reacties
-                .Where(r => r.IsGoedgekeurd || r.GebruikerId == currentUserId)
-                .ToList();
-        }
-
-        return leermiddel;
-    }
-
-    private async Task<string?> GetCurrentUserid()
-    {
-        // Haal huidige gebruiker ID op
-        string? currentUserId = null;
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            var user = await _userManager.GetUserAsync(User);
-            currentUserId = user?.Id;
-        }
-
-        return currentUserId;
-    }
+    }    
 
     // POST: api/leermiddelen
     [HttpPost]
@@ -267,4 +235,35 @@ public class LeermiddelenController : ControllerBase
         var claims = await _userManager.GetClaimsAsync(user);
         return claims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
     }
+	private async Task<Leermiddel> FilterReactiesVoorInterneGebruiker(Leermiddel leermiddel)
+	{
+		// Controleer of gebruiker interne medewerker is
+		var isInterneMedewerker = await IsInterneMedewerker();
+
+		// Filter reacties voor niet-interne gebruikers
+		if (!isInterneMedewerker)
+		{
+			var currentUserId = await GetCurrentUserid();
+
+			// Toon goedgekeurde reacties + eigen niet-goedgekeurde reacties
+			leermiddel.Reacties = leermiddel.Reacties
+				.Where(r => r.IsGoedgekeurd || r.GebruikerId == currentUserId)
+				.ToList();
+		}
+
+		return leermiddel;
+	}
+
+	private async Task<string?> GetCurrentUserid()
+	{
+		// Haal huidige gebruiker ID op
+		string? currentUserId = null;
+		if (User.Identity?.IsAuthenticated == true)
+		{
+			var user = await _userManager.GetUserAsync(User);
+			currentUserId = user?.Id;
+		}
+
+		return currentUserId;
+	}
 }

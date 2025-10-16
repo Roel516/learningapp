@@ -14,4 +14,6 @@ public class RegisterRequest
     [Required(ErrorMessage = "Wachtwoord is verplicht")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "Wachtwoord moet minimaal 6 karakters lang zijn")]
     public string Wachtwoord { get; set; } = string.Empty;
+
+    public bool IsSelfRegistration { get; set; } = true;
 }

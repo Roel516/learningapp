@@ -1,5 +1,5 @@
 @page "/resource/{id:guid}"
-@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Models.Leermiddel
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Components.Base
 @inherits BaseComponentWithErrorHandling
@@ -127,6 +127,11 @@
     private Leermiddel? leermiddel;
     private Reactie nieuweReactie = new();
 
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LaadLeermiddel();
@@ -136,12 +141,7 @@
     private void OnAutenticatieGewijzigd()
     {
         InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
-    }
+    }    
 
     private async Task LaadLeermiddel()
     {

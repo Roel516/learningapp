@@ -1,4 +1,4 @@
-using LearningResourcesApp.Client.Models.Leermiddelen;
+using LearningResourcesApp.Models.Leermiddel;
 using LearningResourcesApp.Client.Services.Interfaces;
 using System.Net.Http.Json;
 

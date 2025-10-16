@@ -1,4 +1,4 @@
-using LearningResourcesApp.Client.Models.Leermiddelen;
+using LearningResourcesApp.Models.Leermiddel;
 
 namespace LearningResourcesApp.Client.Services.Interfaces;
 

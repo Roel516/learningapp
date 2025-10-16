@@ -1,5 +1,5 @@
 @using LearningResourcesApp.Client.Services
-@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Models.Leermiddel
 @inject IAutenticatieService AutenticatieService
 @inject HttpClient Http
 @implements IDisposable
@@ -77,6 +77,12 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+        timer?.Dispose();
+    }
+
     protected override void OnInitialized()
     {
         AutenticatieService.AutenticatieGewijzigd += OnAutenticatieGewijzigd;
@@ -126,11 +132,5 @@
     private async Task Uitloggen()
     {
         await AutenticatieService.Uitloggen();
-    }
-
-    public void Dispose()
-    {
-        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
-        timer?.Dispose();
-    }
+    }    
 }

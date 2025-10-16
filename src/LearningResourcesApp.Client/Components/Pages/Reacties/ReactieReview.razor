@@ -1,5 +1,5 @@
 @page "/reactie-review"
-@using LearningResourcesApp.Client.Models.Leermiddelen
+@using LearningResourcesApp.Models.Leermiddel
 @using LearningResourcesApp.Client.Services
 @using LearningResourcesApp.Client.Components.Base
 @inherits BaseComponentWithErrorHandling
@@ -78,6 +78,11 @@
 @code {
     private List<Reactie> pendingReacties = new();
 
+    public void Dispose()
+    {
+        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         AutenticatieService.AutenticatieGewijzigd += OnAutenticatieGewijzigd;
@@ -87,12 +92,7 @@
     private void OnAutenticatieGewijzigd()
     {
         InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        AutenticatieService.AutenticatieGewijzigd -= OnAutenticatieGewijzigd;
-    }
+    }    
 
     private async Task LaadPendingReacties()
     {
