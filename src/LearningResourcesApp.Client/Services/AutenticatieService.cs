@@ -8,18 +8,16 @@ namespace LearningResourcesApp.Client.Services;
 
 public class AutenticatieService : IAutenticatieService
 {
-    private readonly HttpClient _httpClient;
-    private readonly IJSRuntime _jsRuntime;
-    private Gebruiker? _huidigeGebruiker;
-    private const string ApiBaseUrl = "api/account";
-
     public event Action? AutenticatieGewijzigd;
-
     public Gebruiker? HuidigeGebruiker => _huidigeGebruiker;
-
     public bool IsIngelogd => _huidigeGebruiker != null;
 
-    public AutenticatieService(HttpClient httpClient, IJSRuntime jsRuntime)
+	private readonly HttpClient _httpClient;
+	private readonly IJSRuntime _jsRuntime;
+	private Gebruiker? _huidigeGebruiker;
+	private const string ApiBaseUrl = "api/account";
+
+	public AutenticatieService(HttpClient httpClient, IJSRuntime jsRuntime)
     {
         _httpClient = httpClient;
         _jsRuntime = jsRuntime;
