@@ -1,7 +1,7 @@
 using Azure.Core;
 using LearningResourcesApp.Authorization;
 using LearningResourcesApp.Helpers;
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -67,7 +67,7 @@ public class AccountController : ControllerBase
         return new AuthResponse
         {
             Succes = true,
-            Gebruiker = new UserInfo
+            Gebruiker = new Gebruiker
             {
                 Id = user.Id,
                 Naam = user.UserName ?? string.Empty,
@@ -257,17 +257,17 @@ public class AccountController : ControllerBase
     // GET: api/account/users - Lijst van alle gebruikers (alleen voor interne medewerkers)
     [HttpGet("users")]
     [Authorize(Policy = AuthorizationPolicies.InterneMedewerker)]
-    public async Task<ActionResult<IEnumerable<UserInfo>>> GetAllUsers()
+    public async Task<ActionResult<IEnumerable<Gebruiker>>> GetAllUsers()
     {
         // Haal alle gebruikers op
         var users = _userManager.Users.ToList();
-        var userInfoList = new List<UserInfo>();
+        var userInfoList = new List<Gebruiker>();
 
         foreach (var user in users)
         {
             var isUserInterneMedewerker = await CheckIsInterneMedewerker(user);
 
-            userInfoList.Add(new UserInfo
+            userInfoList.Add(new Gebruiker
             {
                 Id = user.Id,
                 Naam = user.UserName ?? string.Empty,

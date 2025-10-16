@@ -1,14 +1,10 @@
 using Bunit;
-using Bunit.TestDoubles;
 using FluentAssertions;
 using LearningResourcesApp.Client.Layout;
-using LearningResourcesApp.Client.Models.Authenticatie;
-using LearningResourcesApp.Client.Services;
+using LearningResourcesApp.Models.Auth;
 using LearningResourcesApp.Client.Services.Interfaces;
 using LearningResourcesApp.Client.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net;
-using System.Net.Http;
 
 namespace LearningResourcesApp.Client.Tests;
 
@@ -47,7 +43,6 @@ public class NavMenuComponentTests : TestContext
 			Id = "user1",
 			Naam = "Test User",
 			Email = "test@example.com",
-			IsIngelogd = true,
 			IsInterneMedewerker = false
 		};
 
@@ -74,7 +69,6 @@ public class NavMenuComponentTests : TestContext
 			Id = "google_user_123",
 			Naam = "Google User",
 			Email = "googleuser@gmail.com",
-			IsIngelogd = true,
 			IsInterneMedewerker = false
 		};
 
@@ -110,7 +104,6 @@ public class NavMenuComponentTests : TestContext
 			Id = "admin1",
 			Naam = "Admin User",
 			Email = "admin@company.com",
-			IsIngelogd = true,
 			IsInterneMedewerker = true
 		};
 
@@ -139,7 +132,6 @@ public class NavMenuComponentTests : TestContext
 			Id = "user1",
 			Naam = "Regular User",
 			Email = "user@example.com",
-			IsIngelogd = true,
 			IsInterneMedewerker = false
 		};
 
@@ -190,7 +182,6 @@ public class NavMenuComponentTests : TestContext
 			Id = "admin1",
 			Naam = "Admin",
 			Email = "admin@company.com",
-			IsIngelogd = true,
 			IsInterneMedewerker = true
 		};
 

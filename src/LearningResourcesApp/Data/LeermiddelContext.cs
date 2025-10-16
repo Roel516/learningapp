@@ -1,4 +1,4 @@
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Leermiddel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;

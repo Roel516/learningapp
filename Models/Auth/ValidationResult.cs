@@ -1,4 +1,4 @@
-namespace LearningResourcesApp.Client.Models.Authenticatie;
+namespace LearningResourcesApp.Models.Auth;
 
 public record ValidationResult
 {

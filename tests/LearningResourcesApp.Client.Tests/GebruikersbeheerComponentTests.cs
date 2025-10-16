@@ -1,13 +1,10 @@
 using Bunit;
-using Bunit.TestDoubles;
 using FluentAssertions;
 using LearningResourcesApp.Client.Components.Pages.Gebruikersbeheer;
-using LearningResourcesApp.Client.Models.Authenticatie;
-using LearningResourcesApp.Client.Services;
+using LearningResourcesApp.Models.Auth;
 using LearningResourcesApp.Client.Services.Interfaces;
 using LearningResourcesApp.Client.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net.Http;
 
 namespace LearningResourcesApp.Client.Tests;
 
@@ -44,8 +41,7 @@ public class GebruikersbeheerComponentTests : TestContext
         {
             Id = "google_123",
             Naam = "Google User",
-            Email = "googleuser@gmail.com",
-            IsIngelogd = true,
+            Email = "googleuser@gmail.com",            
             IsInterneMedewerker = false  // Google users can't manage users
         };
 
@@ -72,8 +68,7 @@ public class GebruikersbeheerComponentTests : TestContext
         {
             Id = "admin1",
             Naam = "Admin User",
-            Email = "admin@company.com",
-            IsIngelogd = true,
+            Email = "admin@company.com",            
             IsInterneMedewerker = true
         };
 
@@ -102,7 +97,6 @@ public class GebruikersbeheerComponentTests : TestContext
             Id = "admin1",
             Naam = "Admin",
             Email = "admin@company.com",
-            IsIngelogd = true,
             IsInterneMedewerker = true
         };
 
@@ -131,7 +125,6 @@ public class GebruikersbeheerComponentTests : TestContext
             Id = "admin1",
             Naam = "Admin",
             Email = "admin@company.com",
-            IsIngelogd = true,
             IsInterneMedewerker = true
         };
 
@@ -165,7 +158,6 @@ public class GebruikersbeheerComponentTests : TestContext
             Id = "admin1",
             Naam = "Admin",
             Email = "admin@company.com",
-            IsIngelogd = true,
             IsInterneMedewerker = true
         };
 

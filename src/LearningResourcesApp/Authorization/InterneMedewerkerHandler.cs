@@ -1,4 +1,4 @@
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 
 namespace LearningResourcesApp.Authorization;

@@ -27,8 +27,4 @@
     <ProjectReference Include="..\LearningResourcesApp.Client\LearningResourcesApp.Client.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
-
 </Project>

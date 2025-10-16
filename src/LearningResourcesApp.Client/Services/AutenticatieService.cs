@@ -1,8 +1,8 @@
-using LearningResourcesApp.Client.Models.Authenticatie;
 using LearningResourcesApp.Client.Services.Interfaces;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Text.Json;
+using LearningResourcesApp.Models.Auth;
 
 namespace LearningResourcesApp.Client.Services;
 
@@ -17,7 +17,7 @@ public class AutenticatieService : IAutenticatieService
 
     public Gebruiker? HuidigeGebruiker => _huidigeGebruiker;
 
-    public bool IsIngelogd => _huidigeGebruiker?.IsIngelogd ?? false;
+    public bool IsIngelogd => _huidigeGebruiker != null;
 
     public AutenticatieService(HttpClient httpClient, IJSRuntime jsRuntime)
     {
@@ -38,14 +38,13 @@ public class AutenticatieService : IAutenticatieService
         }, "initialiseren authenticatie");
     }
 
-    private void ZetHuidigeGebruiker(UserInfo gebruikerInfo)
+    private void ZetHuidigeGebruiker(Gebruiker gebruikerInfo)
     {
         _huidigeGebruiker = new Gebruiker
         {
             Id = gebruikerInfo.Id,
             Naam = gebruikerInfo.Naam,
-            Email = gebruikerInfo.Email,
-            IsIngelogd = true,
+            Email = gebruikerInfo.Email,            
             IsInterneMedewerker = gebruikerInfo.IsInterneMedewerker
         };
         AutenticatieGewijzigd?.Invoke();

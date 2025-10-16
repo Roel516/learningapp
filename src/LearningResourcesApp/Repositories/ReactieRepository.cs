@@ -1,6 +1,6 @@
 using LearningResourcesApp.Data;
 using LearningResourcesApp.Helpers;
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Leermiddel;
 using LearningResourcesApp.Repositories.Interfaces;
 using LearningResourcesApp.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;

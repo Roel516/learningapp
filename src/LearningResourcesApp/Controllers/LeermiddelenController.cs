@@ -1,7 +1,8 @@
 using LearningResourcesApp.Authorization;
 using LearningResourcesApp.Data;
 using LearningResourcesApp.Helpers;
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Auth;
+using LearningResourcesApp.Models.Leermiddel;
 using LearningResourcesApp.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;

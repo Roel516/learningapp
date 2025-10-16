@@ -1,4 +1,4 @@
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Leermiddel;
 
 namespace LearningResourcesApp.Repositories.Interfaces;
 

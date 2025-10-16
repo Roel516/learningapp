@@ -1,6 +1,6 @@
 using FluentAssertions;
 using LearningResourcesApp.Controllers;
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Leermiddel;
 using LearningResourcesApp.Repositories.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;

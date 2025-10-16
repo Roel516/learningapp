@@ -1,4 +1,4 @@
-using LearningResourcesApp.Client.Models.Authenticatie;
+using LearningResourcesApp.Models.Auth;
 
 namespace LearningResourcesApp.Client.Services.Interfaces;
 

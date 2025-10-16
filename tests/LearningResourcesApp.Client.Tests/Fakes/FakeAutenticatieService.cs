@@ -1,6 +1,6 @@
-using LearningResourcesApp.Client.Models.Authenticatie;
 using LearningResourcesApp.Client.Services.Interfaces;
 using Microsoft.JSInterop;
+using LearningResourcesApp.Models.Auth;
 
 namespace LearningResourcesApp.Client.Tests.Fakes;
 
@@ -11,7 +11,7 @@ public class FakeAutenticatieService : IAutenticatieService
     public event Action? AutenticatieGewijzigd;
 
     public Gebruiker? HuidigeGebruiker => _huidigeGebruiker;
-    public bool IsIngelogd => _huidigeGebruiker?.IsIngelogd ?? false;
+    public bool IsIngelogd => _huidigeGebruiker != null;
 
     public void SetHuidigeGebruiker(Gebruiker? gebruiker)
     {

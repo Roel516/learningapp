@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace LearningResourcesApp.Models;
+namespace LearningResourcesApp.Models.Leermiddel;
 
 public class Leermiddel
 {

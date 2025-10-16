@@ -1,6 +1,7 @@
 using LearningResourcesApp.Authorization;
 using LearningResourcesApp.Data;
-using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Leermiddel;
+using LearningResourcesApp.Models.Auth;
 using LearningResourcesApp.Repositories;
 using LearningResourcesApp.Repositories.Interfaces;
 using LearningResourcesApp.Services;

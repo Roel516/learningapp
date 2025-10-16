@@ -1,6 +1,7 @@
 using FluentAssertions;
 using LearningResourcesApp.Controllers;
 using LearningResourcesApp.Models;
+using LearningResourcesApp.Models.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Moq;

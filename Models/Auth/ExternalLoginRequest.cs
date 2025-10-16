@@ -1,4 +1,4 @@
-namespace LearningResourcesApp.Models;
+namespace LearningResourcesApp.Models.Auth;
 
 public record ExternalLoginRequest
 {
