@@ -20,8 +20,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Models\LearningResourcesApp.Models.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Models\Authenticatie\" />
-  </ItemGroup>
 
 </Project>
