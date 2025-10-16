@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Security.Claims;
 
 namespace LearningResourcesApp.Tests;
 
@@ -15,8 +14,8 @@ public class LeermiddelenControllerTests
 {
     private readonly Mock<ILeermiddelRepository> _mockLeermiddelRepo;
     private readonly Mock<IReactieRepository> _mockReactieRepo;
-    private readonly Mock<LearningResourcesApp.Helpers.ControllerExceptionHandler> _mockExceptionHandler;
-    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private readonly Mock<Helpers.ControllerExceptionHandler> _mockExceptionHandler;
+    private readonly Mock<UserManager<IdentityUser>> _mockUserManager;
     private readonly LeermiddelenController _controller;
 
     public LeermiddelenControllerTests()
@@ -26,12 +25,12 @@ public class LeermiddelenControllerTests
         _mockReactieRepo = new Mock<IReactieRepository>();
 
         // Setup exception handler mock
-        var loggerMock = new Mock<ILogger<LearningResourcesApp.Helpers.ControllerExceptionHandler>>();
-        _mockExceptionHandler = new Mock<LearningResourcesApp.Helpers.ControllerExceptionHandler>(loggerMock.Object);
+        var loggerMock = new Mock<ILogger<Helpers.ControllerExceptionHandler>>();
+        _mockExceptionHandler = new Mock<Helpers.ControllerExceptionHandler>(loggerMock.Object);
 
         // Setup UserManager mock
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
+        var userStoreMock = new Mock<IUserStore<IdentityUser>>();
+        _mockUserManager = new Mock<UserManager<IdentityUser>>(
             userStoreMock.Object, null, null, null, null, null, null, null, null);
 
         _controller = new LeermiddelenController(
@@ -167,9 +166,6 @@ public class LeermiddelenControllerTests
 
         _mockLeermiddelRepo.Setup(x => x.CreateAsync(It.IsAny<Leermiddel>()))
             .ReturnsAsync(createdLeermiddel);
-
-        // Note: Authorization is handled by [Authorize] attribute at runtime,
-        // so in unit tests we're testing the controller logic assuming authorization passed
 
         // Act
         var result = await _controller.CreateLeermiddel(leermiddel);

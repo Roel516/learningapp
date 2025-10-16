@@ -9,5 +9,4 @@ public interface ILeermiddelRepository
     Task<Leermiddel> CreateAsync(Leermiddel leermiddel);
     Task UpdateAsync(Leermiddel leermiddel);
     Task DeleteAsync(Guid id);
-    Task<bool> ExistsAsync(Guid id);
 }

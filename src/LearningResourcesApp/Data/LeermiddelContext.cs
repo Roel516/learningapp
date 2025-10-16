@@ -1,10 +1,11 @@
 using LearningResourcesApp.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace LearningResourcesApp.Data;
 
-public class LeermiddelContext : IdentityDbContext<ApplicationUser>
+public class LeermiddelContext : IdentityDbContext<IdentityUser>
 {
     public DbSet<Leermiddel> Leermiddelen { get; set; }
     public DbSet<Reactie> Reacties { get; set; }

@@ -51,16 +51,3 @@ public class FakeAutenticatieService : IAutenticatieService
         return Task.CompletedTask;
     }
 }
-
-public class FakeJSRuntime : IJSRuntime
-{
-    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
-    {
-        return ValueTask.FromResult<TValue>(default!);
-    }
-
-    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
-    {
-        return ValueTask.FromResult<TValue>(default!);
-    }
-}

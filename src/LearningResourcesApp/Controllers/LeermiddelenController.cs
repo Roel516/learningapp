@@ -16,13 +16,13 @@ public class LeermiddelenController : ControllerBase
     private readonly ILeermiddelRepository _leermiddelRepository;
     private readonly IReactieRepository _reactieRepository;
     private readonly ControllerExceptionHandler _exceptionHandler;
-    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly UserManager<IdentityUser> _userManager;
 
     public LeermiddelenController(
         ILeermiddelRepository leermiddelRepository,
         IReactieRepository reactieRepository,
         ControllerExceptionHandler exceptionHandler,
-        UserManager<ApplicationUser> userManager)
+        UserManager<IdentityUser> userManager)
     {
         _leermiddelRepository = leermiddelRepository;
         _reactieRepository = reactieRepository;
@@ -44,13 +44,7 @@ public class LeermiddelenController : ControllerBase
             // Filter reacties voor niet-interne gebruikers
             if (!isInterneMedewerker)
             {
-                // Haal huidige gebruiker ID op
-                string? currentUserId = null;
-                if (User.Identity?.IsAuthenticated == true)
-                {
-                    var user = await _userManager.GetUserAsync(User);
-                    currentUserId = user?.Id;
-                }
+                var currentUserId = await GetCurrentUserid();
 
                 foreach (var leermiddel in leermiddelen)
                 {
@@ -80,31 +74,45 @@ public class LeermiddelenController : ControllerBase
                 return NotFound();
             }
 
-            // Controleer of gebruiker interne medewerker is
-            var isInterneMedewerker = await IsInterneMedewerker();
-
-            // Filter reacties voor niet-interne gebruikers
-            if (!isInterneMedewerker)
-            {
-                // Haal huidige gebruiker ID op
-                string? currentUserId = null;
-                if (User.Identity?.IsAuthenticated == true)
-                {
-                    var user = await _userManager.GetUserAsync(User);
-                    currentUserId = user?.Id;
-                }
-
-                // Toon goedgekeurde reacties + eigen niet-goedgekeurde reacties
-                leermiddel.Reacties = leermiddel.Reacties
-                    .Where(r => r.IsGoedgekeurd || r.GebruikerId == currentUserId)
-                    .ToList();
-            }
+            leermiddel = await FilterReactiesVoorInterneGebruiker(leermiddel);
 
             return Ok(leermiddel);
         },
         "Error retrieving leermiddel {LeermiddelId}",
         "Er is een fout opgetreden bij het ophalen van het leermiddel",
         id);
+    }
+
+    private async Task<Leermiddel> FilterReactiesVoorInterneGebruiker(Leermiddel leermiddel)
+    {
+        // Controleer of gebruiker interne medewerker is
+        var isInterneMedewerker = await IsInterneMedewerker();
+
+        // Filter reacties voor niet-interne gebruikers
+        if (!isInterneMedewerker)
+        {
+            var currentUserId = await GetCurrentUserid(); 
+
+            // Toon goedgekeurde reacties + eigen niet-goedgekeurde reacties
+            leermiddel.Reacties = leermiddel.Reacties
+                .Where(r => r.IsGoedgekeurd || r.GebruikerId == currentUserId)
+                .ToList();
+        }
+
+        return leermiddel;
+    }
+
+    private async Task<string?> GetCurrentUserid()
+    {
+        // Haal huidige gebruiker ID op
+        string? currentUserId = null;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            currentUserId = user?.Id;
+        }
+
+        return currentUserId;
     }
 
     // POST: api/leermiddelen

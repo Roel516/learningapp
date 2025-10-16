@@ -10,21 +10,21 @@ namespace LearningResourcesApp.Tests;
 
 public class AccountControllerTests
 {
-    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly Mock<SignInManager<ApplicationUser>> _mockSignInManager;
+    private readonly Mock<UserManager<IdentityUser>> _mockUserManager;
+    private readonly Mock<SignInManager<IdentityUser>> _mockSignInManager;
     private readonly AccountController _controller;
 
     public AccountControllerTests()
     {
         // Setup UserManager mock
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
+        var userStoreMock = new Mock<IUserStore<IdentityUser>>();
+        _mockUserManager = new Mock<UserManager<IdentityUser>>(
             userStoreMock.Object, null, null, null, null, null, null, null, null);
 
         // Setup SignInManager mock
         var contextAccessorMock = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
-        var userPrincipalFactoryMock = new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>();
-        _mockSignInManager = new Mock<SignInManager<ApplicationUser>>(
+        var userPrincipalFactoryMock = new Mock<IUserClaimsPrincipalFactory<IdentityUser>>();
+        _mockSignInManager = new Mock<SignInManager<IdentityUser>>(
             _mockUserManager.Object,
             contextAccessorMock.Object,
             userPrincipalFactoryMock.Object,
@@ -45,12 +45,12 @@ public class AccountControllerTests
         };
 
         _mockUserManager.Setup(x => x.FindByEmailAsync(request.Email))
-            .ReturnsAsync((ApplicationUser?)null);
+            .ReturnsAsync((IdentityUser?)null);
 
-        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), request.Wachtwoord))
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), request.Wachtwoord))
             .ReturnsAsync(IdentityResult.Success);
 
-        _mockSignInManager.Setup(x => x.SignInAsync(It.IsAny<ApplicationUser>(), true, null))
+        _mockSignInManager.Setup(x => x.SignInAsync(It.IsAny<IdentityUser>(), true, null))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -79,8 +79,8 @@ public class AccountControllerTests
             Wachtwoord = "Test123"
         };
 
-        var existingUser = new ApplicationUser
-        {
+        var existingUser = new IdentityUser
+		{
             Email = request.Email,
             UserName = request.Email
         };
@@ -110,12 +110,11 @@ public class AccountControllerTests
             Wachtwoord = "Test123"
         };
 
-        var user = new ApplicationUser
-        {
+        var user = new IdentityUser
+		{
             Id = "user123",
             Email = request.Email,
-            UserName = request.Email,
-            Naam = "Test User"
+            UserName = "Test User",
         };
 
         _mockUserManager.Setup(x => x.FindByEmailAsync(request.Email))
@@ -151,7 +150,7 @@ public class AccountControllerTests
         };
 
         _mockUserManager.Setup(x => x.FindByEmailAsync(request.Email))
-            .ReturnsAsync((ApplicationUser?)null);
+            .ReturnsAsync((IdentityUser?)null);
 
         // Act
         var result = await _controller.Login(request);
@@ -175,11 +174,10 @@ public class AccountControllerTests
             Wachtwoord = "WrongPassword"
         };
 
-        var user = new ApplicationUser
-        {
+        var user = new IdentityUser
+		{
             Email = request.Email,
-            UserName = request.Email,
-            Naam = "Test User"
+            UserName = "Test User"
         };
 
         _mockUserManager.Setup(x => x.FindByEmailAsync(request.Email))
@@ -210,12 +208,11 @@ public class AccountControllerTests
             Wachtwoord = "Admin123"
         };
 
-        var user = new ApplicationUser
-        {
+        var user = new IdentityUser
+		{
             Id = "admin123",
             Email = request.Email,
-            UserName = request.Email,
-            Naam = "Admin User"
+            UserName = "Admin User",
         };
 
         var claims = new List<Claim>

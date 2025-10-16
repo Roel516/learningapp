@@ -105,12 +105,5 @@ public class LeermiddelRepository : ILeermiddelRepository
             "Error deleting leermiddel with ID {LeermiddelId}",
             id);
     }
-
-    public async Task<bool> ExistsAsync(Guid id)
-    {
-        return await _exceptionHandler.ExecuteAsync(
-            async () => await _context.Leermiddelen.AnyAsync(e => e.Id == id),
-            "Error checking if leermiddel exists with ID {LeermiddelId}",
-            id);
-    }
 }
+

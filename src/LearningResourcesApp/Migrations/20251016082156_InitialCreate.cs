@@ -30,7 +30,6 @@ namespace LearningResourcesApp.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Naam = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -56,9 +55,9 @@ namespace LearningResourcesApp.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Titel = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Beschrijving = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Link = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Titel = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Beschrijving = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    Link = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     AangemaaktOp = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -178,8 +177,8 @@ namespace LearningResourcesApp.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     GebruikerId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Gebruikersnaam = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Tekst = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Gebruikersnaam = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Tekst = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
                     AangemaaktOp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsGoedgekeurd = table.Column<bool>(type: "bit", nullable: false),
                     LeermiddelId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)

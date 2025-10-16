@@ -48,7 +48,7 @@ var isAzure = connectionString?.Contains("database.windows.net", StringCompariso
 Console.WriteLine($"Using SQL Server: {(isLocalDb ? "LocalDB (Development)" : isAzure ? "Azure SQL Database (Production)" : "SQL Server")}");
 
 // Configure Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     // Password settings
     options.Password.RequireDigit = false;
@@ -60,8 +60,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     // User settings
     options.User.RequireUniqueEmail = true;
 })
-.AddEntityFrameworkStores<LeermiddelContext>()
-.AddDefaultTokenProviders();
+.AddEntityFrameworkStores<LeermiddelContext>();
 
 // Configure cookie settings for API
 builder.Services.ConfigureApplicationCookie(options =>
@@ -97,7 +96,7 @@ using (var scope = app.Services.CreateScope())
     Console.WriteLine("Database migrations applied successfully.");
 
     // Seed admin user
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     await SeedAdminUser(userManager);   
     await SeedLeermiddelen(context, userManager);
     
@@ -128,7 +127,7 @@ app.MapFallbackToFile("index.html");
 
 app.Run();
 
-static async Task SeedAdminUser(UserManager<ApplicationUser> userManager)
+static async Task SeedAdminUser(UserManager<IdentityUser> userManager)
 {
     const string adminEmail = "admin@admin.nl";
     const string adminPassword = "admin123";
@@ -137,11 +136,10 @@ static async Task SeedAdminUser(UserManager<ApplicationUser> userManager)
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
     if (adminUser == null)
     {
-        adminUser = new ApplicationUser
-        {
-            UserName = adminEmail,
+        adminUser = new IdentityUser
+		{
+            UserName = adminName,
             Email = adminEmail,
-            Naam = adminName,
             EmailConfirmed = true
         };
 
@@ -169,7 +167,7 @@ static async Task SeedAdminUser(UserManager<ApplicationUser> userManager)
     }
 }
 
-static async Task SeedLeermiddelen(LeermiddelContext context, UserManager<ApplicationUser> userManager)
+static async Task SeedLeermiddelen(LeermiddelContext context, UserManager<IdentityUser> userManager)
 {
     // Check of er al leermiddelen zijn
     if (context.Leermiddelen.Any())
@@ -182,7 +180,7 @@ static async Task SeedLeermiddelen(LeermiddelContext context, UserManager<Applic
         new Leermiddel
         {
             Titel = "C# Programming Guide",
-            Beschrijving = "Een uitgebreide gids voor C# programmeren, inclusief alle nieuwe features van C# 12",
+            Beschrijving = "Een uitgebreide gids voor C# programmeren",
             Link = "https://learn.microsoft.com/en-us/dotnet/csharp/",
             AangemaaktOp = DateTime.UtcNow
         },

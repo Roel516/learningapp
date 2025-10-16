@@ -13,12 +13,12 @@ namespace LearningResourcesApp.Controllers;
 [Route("api/[controller]")]
 public class AccountController : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly UserManager<IdentityUser> _userManager;
+    private readonly SignInManager<IdentityUser> _signInManager;
 
     public AccountController(
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        UserManager<IdentityUser> userManager,
+        SignInManager<IdentityUser> signInManager)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -47,7 +47,7 @@ public class AccountController : ControllerBase
             });
         }
 
-        var user = await MaakNieuweGebruiker(request.Email, request.Email, request.Naam);
+        var user = await MaakNieuweGebruiker(request.Naam, request.Email, request.Wachtwoord);
         if (user == null)
         {
             return BadRequest(new AuthResponse
@@ -59,10 +59,10 @@ public class AccountController : ControllerBase
 
         await _signInManager.SignInAsync(user, isPersistent: true);
 
-        return Ok(MaakAuthResponse(user, isInterneMedewerker: false));
+        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker: false));
     }    
 
-    private AuthResponse MaakAuthResponse(ApplicationUser user, bool isInterneMedewerker)
+    private AuthResponse MaakSuccesAuthResponse(IdentityUser user, bool isInterneMedewerker)
     {
         return new AuthResponse
         {
@@ -70,7 +70,7 @@ public class AccountController : ControllerBase
             Gebruiker = new UserInfo
             {
                 Id = user.Id,
-                Naam = user.Naam ?? string.Empty,
+                Naam = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
                 IsInterneMedewerker = isInterneMedewerker
             }
@@ -110,10 +110,10 @@ public class AccountController : ControllerBase
         }
 
         var isInterneMedewerker = await CheckIsInterneMedewerker(user);
-        return Ok(MaakAuthResponse(user, isInterneMedewerker));
+        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker));
     }
 
-    private async Task<bool> ValideerWachtwoord(ApplicationUser user, string wachtwoord)
+    private async Task<bool> ValideerWachtwoord(IdentityUser user, string wachtwoord)
     {
         var result = await _signInManager.PasswordSignInAsync(
             user.UserName ?? string.Empty,
@@ -124,7 +124,7 @@ public class AccountController : ControllerBase
         return result.Succeeded;
     }
 
-    private async Task<bool> CheckIsInterneMedewerker(ApplicationUser user)
+    private async Task<bool> CheckIsInterneMedewerker(IdentityUser user)
     {
         var claims = await _userManager.GetClaimsAsync(user);
         return claims.Any(c => c.Type == AppClaims.InterneMedewerker && c.Value == "true");
@@ -162,7 +162,7 @@ public class AccountController : ControllerBase
 
 
         var isInterneMedewerker = await CheckIsInterneMedewerker(user);
-        return Ok(MaakAuthResponse(user, isInterneMedewerker));
+        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker));
     }
 
     [HttpPost("external-login")]
@@ -200,10 +200,10 @@ public class AccountController : ControllerBase
         await _signInManager.SignInAsync(user, isPersistent: true);
 
         var isInterneMedewerker = await CheckIsInterneMedewerker(user);
-        return Ok(MaakAuthResponse(user, isInterneMedewerker));
+        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker));
     }
 
-    private async Task<ApplicationUser?> ZoekOfMaakGebruiker(ExternalLoginRequest request)
+    private async Task<IdentityUser?> ZoekOfMaakGebruiker(ExternalLoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user != null)
@@ -211,16 +211,15 @@ public class AccountController : ControllerBase
             return user;
         }
 
-        return await MaakNieuweGebruiker(request.Email, request.Email, request.Naam);
+        return await MaakNieuweGebruiker(request.Naam, request.Email);
     }
 
-	private async Task<ApplicationUser?> MaakNieuweGebruiker(string userName, string  email, string naam, string wachtwoord = "")
+	private async Task<IdentityUser?> MaakNieuweGebruiker(string userName, string  email, string wachtwoord = "")
 	{
-		var user = new ApplicationUser
+		var user = new IdentityUser
 		{
 			UserName = userName,
-			Email = email,
-			Naam = naam,
+			Email = email,			
 			EmailConfirmed = true
 		};
 
@@ -238,7 +237,7 @@ public class AccountController : ControllerBase
 		return result.Succeeded ? user : null;
 	}
 
-	private async Task<bool> KoppelExterneLogin(ApplicationUser user, ExternalLoginRequest request)
+	private async Task<bool> KoppelExterneLogin(IdentityUser user, ExternalLoginRequest request)
     {
         var logins = await _userManager.GetLoginsAsync(user);
         var bestaandeLogin = logins.FirstOrDefault(l =>
@@ -271,7 +270,7 @@ public class AccountController : ControllerBase
             userInfoList.Add(new UserInfo
             {
                 Id = user.Id,
-                Naam = user.Naam ?? string.Empty,
+                Naam = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
                 IsInterneMedewerker = isUserInterneMedewerker
             });
