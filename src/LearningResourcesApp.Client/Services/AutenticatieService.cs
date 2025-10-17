@@ -68,64 +68,7 @@ public class AutenticatieService : IAutenticatieService
             "inloggen",
             true
         );
-    }
-
-    private async Task<AuthResult> VoerAuthenticatieActieUit(
-        Func<Task<HttpResponseMessage>> apiCall,
-        string defaultFoutmelding,
-        string actieBeschrijving,
-        bool loggingIn)
-    {
-        try
-        {
-            var response = await apiCall();
-            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-            if (result?.Succes == true && result.Gebruiker != null)
-            {
-                if (loggingIn)
-                { 
-                    ZetHuidigeGebruiker(result.Gebruiker); 
-                }
-                return AuthResult.Success();
-            }
-
-            return AuthResult.Failure(result?.Foutmelding ?? defaultFoutmelding);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
-            return AuthResult.Failure($"Er is een fout opgetreden bij {actieBeschrijving}");
-        }
-    }
-
-    private async Task<AuthResult> VoerActieMetAuthResultUit(
-        Func<Task<AuthResult>> actie,
-        string actieBeschrijving,
-        string gebruikerFoutmelding)
-    {
-        try
-        {
-            return await actie();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
-            return AuthResult.Failure($"Er is een fout opgetreden bij {gebruikerFoutmelding}");
-        }
-    }
-
-    private async Task VoerActieMetFoutAfhandelingUit(Func<Task> actie, string actieBeschrijving)
-    {
-        try
-        {
-            await actie();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
-        }
-    }
+    }    
 
     // Genereer Google OAuth URL
     public string GenereerGoogleLoginUrl(string clientId, string redirectUri)
@@ -189,30 +132,7 @@ public class AutenticatieService : IAutenticatieService
 
         // Extract gebruiker informatie
         return ExtractGebruikerInfo(payloadValue);
-    }
-
-    private async Task<AuthResult> RegistreerExterneLogin(GebruikerInfoResult gebruikerInfo)
-    {
-        // Stuur Google info naar backend om gebruiker te maken/ophalen
-        var externalLoginRequest = new
-        {
-            Provider = "Google",
-            ProviderId = gebruikerInfo.GoogleId,
-            Email = gebruikerInfo.Email,
-            Naam = gebruikerInfo.Naam
-        };
-
-        var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/external-login", externalLoginRequest);
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-        if (result?.Succes == true && result.Gebruiker != null)
-        {
-            ZetHuidigeGebruiker(result.Gebruiker);
-            return AuthResult.Success();
-        }
-
-        return AuthResult.Failure(result?.Foutmelding ?? "Google login mislukt");
-    }
+    }    
 
     private async Task<string?> HaalEnVerwijderNonce()
     {
@@ -280,7 +200,83 @@ public class AutenticatieService : IAutenticatieService
         return GebruikerInfoResult.Success(email, naam, googleId);
     }
 
-    private JsonElement? DecodeJwtPayload(string token)
+	private async Task<AuthResult> VoerAuthenticatieActieUit(
+		Func<Task<HttpResponseMessage>> apiCall,
+		string defaultFoutmelding,
+		string actieBeschrijving,
+		bool loggingIn)
+	{
+		try
+		{
+			var response = await apiCall();
+			var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+			if (result?.Succes == true && result.Gebruiker != null)
+			{
+				if (loggingIn)
+				{
+					ZetHuidigeGebruiker(result.Gebruiker);
+				}
+				return AuthResult.Success();
+			}
+
+			return AuthResult.Failure(result?.Foutmelding ?? defaultFoutmelding);
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
+			return AuthResult.Failure($"Er is een fout opgetreden bij {actieBeschrijving}");
+		}
+	}
+
+    private async Task<AuthResult> RegistreerExterneLogin(GebruikerInfoResult gebruikerInfo)
+    {
+        // Stuur Google info naar backend om gebruiker te maken/ophalen
+        var externalLoginRequest = new
+        {
+            Provider = "Google",
+            ProviderId = gebruikerInfo.GoogleId,
+            Email = gebruikerInfo.Email,
+            Naam = gebruikerInfo.Naam
+        };
+
+		return await VoerAuthenticatieActieUit(
+			async () => await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/external-login", externalLoginRequest),
+		    "External login mislukt",
+			"external-login",
+			true
+		);		
+    }
+
+	private async Task<AuthResult> VoerActieMetAuthResultUit(
+		Func<Task<AuthResult>> actie,
+		string actieBeschrijving,
+		string gebruikerFoutmelding)
+	{
+		try
+		{
+			return await actie();
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
+			return AuthResult.Failure($"Er is een fout opgetreden bij {gebruikerFoutmelding}");
+		}
+	}
+
+	private async Task VoerActieMetFoutAfhandelingUit(Func<Task> actie, string actieBeschrijving)
+	{
+		try
+		{
+			await actie();
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
+		}
+	}
+
+	private JsonElement? DecodeJwtPayload(string token)
     {
         try
         {

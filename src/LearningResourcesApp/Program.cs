@@ -70,19 +70,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Strict;
     options.ExpireTimeSpan = TimeSpan.FromDays(7);
-    options.SlidingExpiration = true;
-
-    // Return 401 instead of redirect for API calls
-    options.Events.OnRedirectToLogin = context =>
-    {
-        context.Response.StatusCode = 401;
-        return Task.CompletedTask;
-    };
-    options.Events.OnRedirectToAccessDenied = context =>
-    {
-        context.Response.StatusCode = 403;
-        return Task.CompletedTask;
-    };
+    options.SlidingExpiration = true;    
 });
 
 var app = builder.Build();
