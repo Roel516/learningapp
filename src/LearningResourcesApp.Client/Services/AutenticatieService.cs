@@ -34,19 +34,7 @@ public class AutenticatieService : IAutenticatieService
                 ZetHuidigeGebruiker(response.Gebruiker);
             }
         }, "initialiseren authenticatie");
-    }
-
-    private void ZetHuidigeGebruiker(Gebruiker gebruikerInfo)
-    {
-        _huidigeGebruiker = new Gebruiker
-        {
-            Id = gebruikerInfo.Id,
-            Naam = gebruikerInfo.Naam,
-            Email = gebruikerInfo.Email,            
-            IsInterneMedewerker = gebruikerInfo.IsInterneMedewerker
-        };
-        AutenticatieGewijzigd?.Invoke();
-    }
+    }    
 
     // Registreer met email/wachtwoord (Identity)
     public async Task<AuthResult> Registreren(RegisterRequest request)
@@ -93,19 +81,39 @@ public class AutenticatieService : IAutenticatieService
     // Verwerk OAuth callback
     public async Task<AuthResult> VerwerkOAuthCallback(string idToken, string accessToken)
     {
-        return await VoerActieMetAuthResultUit(async () =>
+        var gebruikerInfo = await ValideerEnDecodeToken(idToken);
+        if (!gebruikerInfo.IsGeldig)
         {
-            var gebruikerInfo = await ValideerEnDecodeToken(idToken);
-            if (!gebruikerInfo.IsGeldig)
-            {
-                return AuthResult.Failure(gebruikerInfo.Foutmelding);
-            }
+            return AuthResult.Failure(gebruikerInfo.Foutmelding);
+        }
 
-            return await RegistreerExterneLogin(gebruikerInfo);
-        }, "verwerken OAuth callback", "Google login");
+        return await RegistreerExterneLogin(gebruikerInfo);     
     }
 
-    private async Task<GebruikerInfoResult> ValideerEnDecodeToken(string idToken)
+	public async Task Uitloggen()
+	{
+		await VoerActieMetFoutAfhandelingUit(async () =>
+		{
+			await _httpClient.PostAsync($"{ApiBaseUrl}/logout", null);
+		}, "uitloggen");
+
+		_huidigeGebruiker = null;
+		AutenticatieGewijzigd?.Invoke();
+	}
+
+	private void ZetHuidigeGebruiker(Gebruiker gebruikerInfo)
+	{
+		_huidigeGebruiker = new Gebruiker
+		{
+			Id = gebruikerInfo.Id,
+			Naam = gebruikerInfo.Naam,
+			Email = gebruikerInfo.Email,
+			IsInterneMedewerker = gebruikerInfo.IsInterneMedewerker
+		};
+		AutenticatieGewijzigd?.Invoke();
+	}
+
+	private async Task<GebruikerInfoResult> ValideerEnDecodeToken(string idToken)
     {
         // Haal en valideer nonce
         var storedNonce = await HaalEnVerwijderNonce();
@@ -246,23 +254,7 @@ public class AutenticatieService : IAutenticatieService
 			"external-login",
 			true
 		);		
-    }
-
-	private async Task<AuthResult> VoerActieMetAuthResultUit(
-		Func<Task<AuthResult>> actie,
-		string actieBeschrijving,
-		string gebruikerFoutmelding)
-	{
-		try
-		{
-			return await actie();
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"Fout bij {actieBeschrijving}: {ex.Message}");
-			return AuthResult.Failure($"Er is een fout opgetreden bij {gebruikerFoutmelding}");
-		}
-	}
+    }	
 
 	private async Task VoerActieMetFoutAfhandelingUit(Func<Task> actie, string actieBeschrijving)
 	{
@@ -296,16 +288,5 @@ public class AutenticatieService : IAutenticatieService
         {
             return null;
         }
-    }
-
-    public async Task Uitloggen()
-    {
-        await VoerActieMetFoutAfhandelingUit(async () =>
-        {
-            await _httpClient.PostAsync($"{ApiBaseUrl}/logout", null);
-        }, "uitloggen");
-
-        _huidigeGebruiker = null;
-        AutenticatieGewijzigd?.Invoke();
-    }
+    }    
 }
