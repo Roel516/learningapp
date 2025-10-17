@@ -56,10 +56,7 @@
 
     private async Task VerwerkFragment(string fragment)
     {
-        var parameters = ParseFragment(fragment);
-
-        Console.WriteLine($"Fragment parameters: {string.Join(", ", parameters.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
-        await Task.Delay(5000);
+        var parameters = ParseFragment(fragment);   
         
         if (parameters.ContainsKey("id_token"))
         {

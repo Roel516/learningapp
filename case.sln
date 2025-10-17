@@ -22,7 +22,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LearningResourcesApp.Tests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LearningResourcesApp.Client.Tests", "tests\LearningResourcesApp.Client.Tests\LearningResourcesApp.Client.Tests.csproj", "{CE48EA8B-5F2C-4BBC-844A-8096693C3317}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LearningResourcesApp.Models", "Models\LearningResourcesApp.Models.csproj", "{B4C19E20-D2D5-419F-8ED1-0FDE89B1332C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LearningResourcesApp.Models", "src\LearningResourcesApp.Models\LearningResourcesApp.Models.csproj", "{B4C19E20-D2D5-419F-8ED1-0FDE89B1332C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

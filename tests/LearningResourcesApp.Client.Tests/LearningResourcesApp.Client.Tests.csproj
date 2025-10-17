@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Models\LearningResourcesApp.Models.csproj" />
+    <ProjectReference Include="..\..\src\LearningResourcesApp.Models\LearningResourcesApp.Models.csproj" />
     <ProjectReference Include="..\..\src\LearningResourcesApp.Client\LearningResourcesApp.Client.csproj" />
   </ItemGroup>
 

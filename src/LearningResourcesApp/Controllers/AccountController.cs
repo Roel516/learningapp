@@ -1,6 +1,4 @@
-using Azure.Core;
 using LearningResourcesApp.Authorization;
-using LearningResourcesApp.Helpers;
 using LearningResourcesApp.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -237,6 +235,7 @@ public class AccountController : ControllerBase
 		var addLoginResult = await _userManager.AddLoginAsync(user, loginInfo);
 		return addLoginResult.Succeeded;
 	}
+
 	private async Task<bool> ValideerWachtwoord(IdentityUser user, string wachtwoord)
 	{
 		var result = await _signInManager.PasswordSignInAsync(
