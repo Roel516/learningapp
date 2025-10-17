@@ -88,12 +88,6 @@ variable "enable_staging_slot" {
   default     = false
 }
 
-variable "enable_app_insights" {
-  description = "Enable Application Insights monitoring"
-  type        = bool
-  default     = true
-}
-
 # Azure DevOps Configuration
 variable "azdo_org_url" {
   description = "Azure DevOps organization URL (e.g., https://dev.azure.com/yourorg)"

@@ -23,12 +23,6 @@ output "sql_database_name" {
   value       = azurerm_mssql_database.main.name
 }
 
-output "app_insights_instrumentation_key" {
-  description = "Application Insights instrumentation key"
-  value       = var.enable_app_insights ? azurerm_application_insights.main[0].instrumentation_key : null
-  sensitive   = true
-}
-
 output "deployment_instructions" {
   description = "Next steps for deployment"
   value       = <<-EOT
