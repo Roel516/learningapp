@@ -61,7 +61,7 @@ public class AccountController : ControllerBase
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user == null)
         {
-            return CreateBadRequest("Ongeldige email of wachtwoord");			
+            return UnauthorizedRequest("Ongeldige email of wachtwoord");
         }
 
         var signInSucceeded = await ValideerWachtwoord(user, request.Wachtwoord);
