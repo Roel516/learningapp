@@ -2,6 +2,7 @@ using FluentAssertions;
 using LearningResourcesApp.Controllers;
 using LearningResourcesApp.Models;
 using LearningResourcesApp.Models.Auth;
+using LearningResourcesApp.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -13,6 +14,7 @@ public class AccountControllerTests
 {
     private readonly Mock<UserManager<IdentityUser>> _mockUserManager;
     private readonly Mock<SignInManager<IdentityUser>> _mockSignInManager;
+    private readonly Mock<IJwtTokenService> _mockJwtTokenService;
     private readonly AccountController _controller;
 
     public AccountControllerTests()
@@ -31,7 +33,12 @@ public class AccountControllerTests
             userPrincipalFactoryMock.Object,
             null, null, null, null);
 
-        _controller = new AccountController(_mockUserManager.Object, _mockSignInManager.Object);
+        // Setup JwtTokenService mock
+        _mockJwtTokenService = new Mock<IJwtTokenService>();
+        _mockJwtTokenService.Setup(x => x.GenerateTokenAsync(It.IsAny<IdentityUser>()))
+            .ReturnsAsync("mock-jwt-token");
+
+        _controller = new AccountController(_mockUserManager.Object, _mockSignInManager.Object, _mockJwtTokenService.Object);
     }
 
     [Fact]
@@ -121,8 +128,8 @@ public class AccountControllerTests
         _mockUserManager.Setup(x => x.FindByEmailAsync(request.Email))
             .ReturnsAsync(user);
 
-        _mockSignInManager.Setup(x => x.PasswordSignInAsync(user.UserName!, request.Wachtwoord, true, false))
-            .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
+        _mockUserManager.Setup(x => x.CheckPasswordAsync(user, request.Wachtwoord))
+            .ReturnsAsync(true);
 
         _mockUserManager.Setup(x => x.GetClaimsAsync(user))
             .ReturnsAsync(new List<Claim>());
@@ -184,8 +191,8 @@ public class AccountControllerTests
         _mockUserManager.Setup(x => x.FindByEmailAsync(request.Email))
             .ReturnsAsync(user);
 
-        _mockSignInManager.Setup(x => x.PasswordSignInAsync(user.UserName!, request.Wachtwoord, true, false))
-            .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Failed);
+        _mockUserManager.Setup(x => x.CheckPasswordAsync(user, request.Wachtwoord))
+            .ReturnsAsync(false);
 
         // Act
         var result = await _controller.Login(request);
@@ -224,8 +231,8 @@ public class AccountControllerTests
         _mockUserManager.Setup(x => x.FindByEmailAsync(request.Email))
             .ReturnsAsync(user);
 
-        _mockSignInManager.Setup(x => x.PasswordSignInAsync(user.UserName!, request.Wachtwoord, true, false))
-            .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
+        _mockUserManager.Setup(x => x.CheckPasswordAsync(user, request.Wachtwoord))
+            .ReturnsAsync(true);
 
         _mockUserManager.Setup(x => x.GetClaimsAsync(user))
             .ReturnsAsync(claims);
