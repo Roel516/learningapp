@@ -1,5 +1,6 @@
 using LearningResourcesApp.Authorization;
 using LearningResourcesApp.Models.Auth;
+using LearningResourcesApp.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,13 +14,16 @@ public class AccountController : ControllerBase
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly IJwtTokenService _jwtTokenService;
 
     public AccountController(
         UserManager<IdentityUser> userManager,
-        SignInManager<IdentityUser> signInManager)
+        SignInManager<IdentityUser> signInManager,
+        IJwtTokenService jwtTokenService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _jwtTokenService = jwtTokenService;
     }
 
     [HttpPost("register")]
@@ -45,9 +49,9 @@ public class AccountController : ControllerBase
 
         if (request.IsSelfRegistration) {
 			await _signInManager.SignInAsync(user, isPersistent: true);
-		}        
+		}
 
-        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker: false));
+        return Ok(await MaakSuccesAuthResponse(user, isInterneMedewerker: false));
     }
 
     [HttpPost("login")]
@@ -68,11 +72,18 @@ public class AccountController : ControllerBase
         if (!signInSucceeded)
         {
             return UnauthorizedRequest("Ongeldige email of wachtwoord");
-           
+
+        }
+
+        // Optionally create a cookie session for browser-based clients (e.g., Blazor)
+        // External API consumers should set UseCookieAuth = false to use JWT-only
+        if (request.UseCookieAuth)
+        {
+            await _signInManager.SignInAsync(user, isPersistent: true);
         }
 
         var isInterneMedewerker = await CheckIsInterneMedewerker(user);
-        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker));
+        return Ok(await MaakSuccesAuthResponse(user, isInterneMedewerker));
     }   
 
     [HttpPost("logout")]
@@ -106,7 +117,7 @@ public class AccountController : ControllerBase
         }
 
         var isInterneMedewerker = await CheckIsInterneMedewerker(user);
-        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker));
+        return Ok(await MaakSuccesAuthResponse(user, isInterneMedewerker));
     }
 
     [HttpPost("external-login")]
@@ -132,8 +143,8 @@ public class AccountController : ControllerBase
         await _signInManager.SignInAsync(user, isPersistent: true);
 
         var isInterneMedewerker = await CheckIsInterneMedewerker(user);
-        return Ok(MaakSuccesAuthResponse(user, isInterneMedewerker));
-    }    	
+        return Ok(await MaakSuccesAuthResponse(user, isInterneMedewerker));
+    }   
 
     // GET: api/account/users - Lijst van alle gebruikers (alleen voor interne medewerkers)
     [HttpGet("users")]
@@ -204,8 +215,11 @@ public class AccountController : ControllerBase
 		});
 	}
 
-	private AuthResponse MaakSuccesAuthResponse(IdentityUser user, bool isInterneMedewerker)
+	private async Task<AuthResponse> MaakSuccesAuthResponse(IdentityUser user, bool isInterneMedewerker)
 	{
+		// Generate JWT token for the user
+		var token = await _jwtTokenService.GenerateTokenAsync(user);
+
 		return new AuthResponse
 		{
 			Succes = true,
@@ -215,7 +229,8 @@ public class AccountController : ControllerBase
 				Naam = user.UserName ?? string.Empty,
 				Email = user.Email ?? string.Empty,
 				IsInterneMedewerker = isInterneMedewerker
-			}
+			},
+			Token = token
 		};
 	}
 
@@ -238,13 +253,10 @@ public class AccountController : ControllerBase
 
 	private async Task<bool> ValideerWachtwoord(IdentityUser user, string wachtwoord)
 	{
-		var result = await _signInManager.PasswordSignInAsync(
-			user.UserName ?? string.Empty,
-			wachtwoord,
-			isPersistent: true,
-			lockoutOnFailure: false);
-
-		return result.Succeeded;
+		// Use CheckPasswordAsync instead of PasswordSignInAsync to avoid creating a cookie session
+		// This allows pure JWT authentication without cookie interference
+		var isValid = await _userManager.CheckPasswordAsync(user, wachtwoord);
+		return isValid;
 	}
 
 	private async Task<bool> CheckIsInterneMedewerker(IdentityUser user)
